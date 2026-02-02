@@ -12,14 +12,12 @@ CREATE TABLE "FeedingTimer" (
     "familyId" TEXT,
     "caretakerId" TEXT,
 
-    CONSTRAINT "FeedingTimer_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "FeedingTimer_pkey" PRIMARY KEY ("id"),
+    CONSTRAINT "FeedingTimer_babyId_fkey" FOREIGN KEY ("babyId") REFERENCES "Baby" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "FeedingTimer_caretakerId_fkey" FOREIGN KEY ("caretakerId") REFERENCES "Caretaker" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "FeedingTimer_familyId_fkey" FOREIGN KEY ("familyId") REFERENCES "Family" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateIndex
 CREATE INDEX "FeedingTimer_babyId_idx" ON "FeedingTimer"("babyId");
 CREATE INDEX "FeedingTimer_familyId_idx" ON "FeedingTimer"("familyId");
-
--- AddForeignKey
-ALTER TABLE "FeedingTimer" ADD CONSTRAINT "FeedingTimer_babyId_fkey" FOREIGN KEY ("babyId") REFERENCES "Baby"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "FeedingTimer" ADD CONSTRAINT "FeedingTimer_caretakerId_fkey" FOREIGN KEY ("caretakerId") REFERENCES "Caretaker"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-ALTER TABLE "FeedingTimer" ADD CONSTRAINT "FeedingTimer_familyId_fkey" FOREIGN KEY ("familyId") REFERENCES "Family"("id") ON DELETE SET NULL ON UPDATE CASCADE;
