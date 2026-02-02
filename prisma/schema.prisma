@@ -173,6 +173,7 @@ model Family {
   measurements   Measurement[]
   medicines      Medicine[]
   medicineLogs   MedicineLog[]
+  feedingTimers  FeedingTimer[]
   contacts       Contact[]
   calendarEvents CalendarEvent[]
   familyMembers  FamilyMember[]
@@ -224,6 +225,7 @@ model Baby {
   measurements Measurement[]
   events       BabyEvent[] // New relationship for calendar events
   medicineLogs MedicineLog[] // New relationship for medicine logs
+  feedingTimers FeedingTimer[]
 
   @@index([birthDate])
   @@index([deletedAt])
@@ -264,6 +266,7 @@ model Caretaker {
   measurements  Measurement[]
   medicineLogs  MedicineLog[] // Relation to MedicineLog model
   events        CaretakerEvent[] // New relationship for calendar events
+  feedingTimers FeedingTimer[]
   familyMembers FamilyMember[]
   familySetups  FamilySetup[]
   feedback      Feedback[]
