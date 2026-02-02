@@ -88,7 +88,7 @@ MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1)
 MIGRATE_STATUS=$?
 if [ $MIGRATE_STATUS -ne 0 ]; then
     echo "$MIGRATE_OUTPUT"
-    if echo "$MIGRATE_OUTPUT" | rg -q "P3009"; then
+    if echo "$MIGRATE_OUTPUT" | grep -q "P3009"; then
         echo ""
         echo "Detected a failed migration in the database."
         echo "For a fresh install, delete db/baby-tracker.db and rerun this script."
