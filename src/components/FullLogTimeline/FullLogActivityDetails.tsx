@@ -39,7 +39,7 @@ const FullLogActivityDetails: React.FC<FullLogActivityDetailsProps> = ({
       medName = (activity.medicine as { name?: string }).name || medName;
     }
     const dose = activity.doseAmount ? `${activity.doseAmount} ${activity.unitAbbr || ''}`.trim() : '';
-    const medTime = activity.time ? formatTime(activity.time, settings, true) : '';
+    const medTime = activity.time ? formatTime(activity.time, settings, true, t) : '';
     let notes = activity.notes ? activity.notes : '';
     if (notes.length > 50) notes = notes.substring(0, 50) + '...';
     medicineDetails = [

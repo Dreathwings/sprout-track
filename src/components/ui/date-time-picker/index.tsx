@@ -3,9 +3,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import './date-time-picker.css';
 import { Calendar } from '@/src/components/ui/calendar';
-import { TimeEntry } from '@/src/components/ui/time-entry';
+import TimePicker from '@/src/components/ui/time-picker';
 import { cn } from '@/src/lib/utils';
-import { format, isValid } from 'date-fns';
+import { isValid } from 'date-fns';
 import { CalendarIcon, Clock } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import {
@@ -24,6 +24,8 @@ import {
   dateTimePickerTimeContainerStyles,
   dateTimePickerFooterStyles, // Keep footer style for potential future use or spacing
 } from './date-time-picker.styles';
+import { useLocalization } from '@/src/context/localization';
+import { applyTimeInputToDate, formatDateValue, formatTimeInputValue, formatTimeValue, getLocalePreference, getTimeFormatPreference, TimeFormatPreference } from '@/src/lib/time-format';
 
 /**
  * DateTimePicker Component
@@ -44,7 +46,12 @@ export function DateTimePicker({
   className,
   disabled = false,
   placeholder = "Select date and time...",
+  timeFormat,
 }: DateTimePickerProps) {
+  const { t, language } = useLocalization();
+  const resolvedLocale = getLocalePreference(language);
+  const resolvedTimeFormat: TimeFormatPreference = timeFormat || getTimeFormatPreference();
+
   // Allow for null date value
   const [date, setDate] = useState<Date | null>(() => {
     // Check if value is a valid Date
@@ -105,24 +112,17 @@ export function DateTimePicker({
   
   // Format the date for display
   const formatDate = (date: Date | null): string => {
-    if (!date || !isValid(date)) return 'Select date';
-    try {
-      return format(date, 'MMM d, yyyy'); // e.g., "Apr 7, 2025"
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Select date';
-    }
+    if (!date || !isValid(date)) return t('datetimePicker.datePlaceholder');
+    return formatDateValue(date, {
+      locale: resolvedLocale,
+      formatOptions: { month: 'short', day: 'numeric', year: 'numeric' },
+    });
   };
   
   // Format the time for display
   const formatTime = (date: Date | null): string => {
-    if (!date || !isValid(date)) return 'Select time';
-    try {
-      return format(date, 'h:mm a'); // e.g., "1:55 PM"
-    } catch (error) {
-      console.error('Error formatting time:', error);
-      return 'Select time';
-    }
+    if (!date || !isValid(date)) return t('datetimePicker.timePlaceholder');
+    return formatTimeValue(date, { locale: resolvedLocale, timeFormat: resolvedTimeFormat });
   };
   
   // The time popover will now close when clicking outside, removing the need for a "Done" button.
@@ -177,11 +177,18 @@ export function DateTimePicker({
           sideOffset={4}
         >
           <div className={dateTimePickerTimeContainerStyles}>
-            <TimeEntry
-              value={date}
-              onChange={handleTimeChange}
+            <TimePicker
+              value={formatTimeInputValue(date)}
+              onChange={(newValue) => {
+                if (!newValue) return;
+                const baseDate = date && isValid(date) ? date : new Date();
+                const updated = applyTimeInputToDate(baseDate, newValue);
+                handleTimeChange(updated);
+              }}
               disabled={disabled}
               className="mx-auto w-full"
+              timeFormat={resolvedTimeFormat}
+              ariaLabel={t('datetimePicker.timeInputLabel')}
             />
           </div>
           {/* Removed Footer with done button */}

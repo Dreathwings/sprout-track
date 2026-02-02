@@ -3,6 +3,7 @@ import { cn } from '@/src/lib/utils';
 import { CalendarEventProps } from './calendar-event.types';
 import { calendarEventStyles as styles } from './calendar-event.styles';
 import { useLocalization } from '@/src/context/localization';
+import { formatDateValue, formatTimeValue, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 
 import { 
   Calendar, 
@@ -25,27 +26,26 @@ const CalendarEvent: React.FC<CalendarEventProps> = ({
   onClick,
   className,
 }) => {
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
+  const locale = getLocalePreference(language);
+  const timeFormat = getTimeFormatPreference();
   
   // Format date for display
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      weekday: 'long',
-      month: 'long',
-      day: 'numeric',
-      year: 'numeric'
+    return formatDateValue(dateString, {
+      locale,
+      formatOptions: {
+        weekday: 'long',
+        month: 'long',
+        day: 'numeric',
+        year: 'numeric',
+      },
     });
   };
   
   // Format time for display
   const formatTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
+    return formatTimeValue(dateString, { locale, timeFormat });
   };
   
   // Format date and time for display
@@ -53,7 +53,7 @@ const CalendarEvent: React.FC<CalendarEventProps> = ({
     if (event.allDay) {
       return formatDate(dateString);
     }
-    return `${formatDate(dateString)} at ${formatTime(dateString)}`;
+    return `${formatDate(dateString)} ${t('calendar.event.at')} ${formatTime(dateString)}`;
   };
   
   // Get recurrence pattern text
@@ -65,29 +65,29 @@ const CalendarEvent: React.FC<CalendarEventProps> = ({
     let text = '';
     switch (event.recurrencePattern) {
       case 'DAILY':
-        text = 'Daily';
+        text = t('calendar.recurrence.daily');
         break;
       case 'WEEKLY':
-        text = 'Weekly';
+        text = t('calendar.recurrence.weekly');
         break;
       case 'BIWEEKLY':
-        text = 'Every 2 weeks';
+        text = t('calendar.recurrence.biweekly');
         break;
       case 'MONTHLY':
-        text = 'Monthly';
+        text = t('calendar.recurrence.monthly');
         break;
       case 'YEARLY':
-        text = 'Yearly';
+        text = t('calendar.recurrence.yearly');
         break;
       case 'CUSTOM':
-        text = event.customRecurrence || 'Custom';
+        text = event.customRecurrence || t('calendar.recurrence.custom');
         break;
       default:
-        text = 'Recurring';
+        text = t('calendar.recurrence.recurring');
     }
     
     if (event.recurrenceEnd) {
-      text += ` until ${formatDate(event.recurrenceEnd)}`;
+      text = `${text} ${t('calendar.recurrence.until')} ${formatDate(event.recurrenceEnd)}`;
     }
     
     return text;
@@ -100,26 +100,26 @@ const CalendarEvent: React.FC<CalendarEventProps> = ({
     }
     
     if (event.reminderTime === 0) {
-      return 'At time of event';
+      return t('calendar.reminder.atTime');
     }
     
     if (event.reminderTime < 60) {
-      return `${event.reminderTime} minutes before`;
+      return `${event.reminderTime} ${t('calendar.reminder.minutesBefore')}`;
     }
     
     if (event.reminderTime === 60) {
-      return '1 hour before';
+      return t('calendar.reminder.oneHourBefore');
     }
     
     if (event.reminderTime < 1440) {
-      return `${event.reminderTime / 60} hours before`;
+      return `${event.reminderTime / 60} ${t('calendar.reminder.hoursBefore')}`;
     }
     
     if (event.reminderTime === 1440) {
-      return '1 day before';
+      return t('calendar.reminder.oneDayBefore');
     }
     
-    return `${event.reminderTime / 1440} days before`;
+    return `${event.reminderTime / 1440} ${t('calendar.reminder.daysBefore')}`;
   };
   
   // Handle click
@@ -155,7 +155,7 @@ const CalendarEvent: React.FC<CalendarEventProps> = ({
             <div>{formatDateTime(event.startTime)}</div>
             {event.endTime && !event.allDay && (
               <div className={styles.endTime}>
-                to {formatTime(event.endTime)}
+                {t('calendar.event.toTime')} {formatTime(event.endTime)}
               </div>
             )}
           </div>

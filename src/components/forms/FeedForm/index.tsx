@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { FeedType, BreastSide } from '@prisma/client';
-import { FeedLogResponse } from '@/app/api/types';
+import { FeedLogResponse, FeedingTimerResponse, FeedingTimerUpdate } from '@/app/api/types';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
 import { DateTimePicker } from '@/src/components/ui/date-time-picker';
@@ -82,6 +82,7 @@ export default function FeedForm({
     defaultBottleUnit: 'OZ',
     defaultSolidsUnit: 'TBSP',
   });
+  const [timerSession, setTimerSession] = useState<FeedingTimerResponse | null>(null);
 
   const fetchLastAmount = async (type: FeedType) => {
     if (!babyId) return;
@@ -159,6 +160,10 @@ export default function FeedForm({
           defaultBottleUnit: data.data.defaultBottleUnit || 'OZ',
           defaultSolidsUnit: data.data.defaultSolidsUnit || 'TBSP',
         });
+
+        if (typeof window !== 'undefined' && data.data.timeFormat) {
+          localStorage.setItem('timeFormat', data.data.timeFormat);
+        }
         
         // Set the default unit from settings
         setFormData(prev => ({
@@ -168,6 +173,76 @@ export default function FeedForm({
       }
     } catch (error) {
       console.error('Error fetching settings:', error);
+    }
+  };
+
+  const syncFeedTimer = async (updates: Partial<FeedingTimerUpdate>) => {
+    if (!babyId) return;
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/feed-timer', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+        body: JSON.stringify({ babyId, ...updates }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setTimerSession(data.data);
+        }
+      }
+    } catch (error) {
+      console.error('Error syncing feeding timer:', error);
+    }
+  };
+
+  const fetchFeedTimer = async () => {
+    if (!babyId) return;
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/feed-timer?babyId=${babyId}`, {
+        headers: {
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+      });
+
+      if (!response.ok) return;
+
+      const data = await response.json();
+      if (data.success && data.data) {
+        const session: FeedingTimerResponse = data.data;
+        setTimerSession(session);
+        applyTimerSession(session);
+      }
+    } catch (error) {
+      console.error('Error fetching feeding timer:', error);
+    }
+  };
+
+  const applyTimerSession = (session: FeedingTimerResponse) => {
+    const activeBreast = session.activeBreast || '';
+    const now = Date.now();
+    const startTime = session.startTime ? new Date(session.startTime).getTime() : now;
+    const elapsedSeconds = session.isRunning ? Math.max(0, Math.floor((now - startTime) / 1000)) : 0;
+
+    setFormData(prev => ({
+      ...prev,
+      type: 'BREAST',
+      activeBreast,
+      leftDuration: session.leftDuration + (activeBreast === 'LEFT' ? elapsedSeconds : 0),
+      rightDuration: session.rightDuration + (activeBreast === 'RIGHT' ? elapsedSeconds : 0),
+    }));
+
+    if (session.isRunning && activeBreast) {
+      void startTimer(activeBreast, { skipSync: true });
+    } else if (isTimerRunning) {
+      void stopTimer({ skipSync: true });
     }
   };
 
@@ -287,6 +362,22 @@ export default function FeedForm({
   }, [isOpen, activity, initialTime]);
 
   useEffect(() => {
+    if (isOpen && babyId && !activity) {
+      fetchFeedTimer();
+    }
+  }, [isOpen, babyId, activity]);
+
+  useEffect(() => {
+    if (!isOpen || !babyId || activity) return;
+
+    const interval = setInterval(() => {
+      fetchFeedTimer();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [isOpen, babyId, activity]);
+
+  useEffect(() => {
     if (formData.type === 'BOTTLE' || formData.type === 'SOLIDS') {
       fetchLastAmount(formData.type);
       
@@ -402,7 +493,7 @@ export default function FeedForm({
 
     // Stop timer if it's running
     if (isTimerRunning) {
-      stopTimer();
+      await stopTimer();
     }
 
     setLoading(true);
@@ -580,7 +671,7 @@ export default function FeedForm({
   // Ref to get current accurate durations from BreastFeedForm
   const getCurrentDurationsRef = useRef<(() => { left: number; right: number }) | null>(null);
   
-  const startTimer = (breast: 'LEFT' | 'RIGHT') => {
+  const startTimer = async (breast: 'LEFT' | 'RIGHT', options?: { skipSync?: boolean }) => {
     if (!isTimerRunning) {
       setIsTimerRunning(true);
       
@@ -590,6 +681,16 @@ export default function FeedForm({
           ...prev,
           activeBreast: breast
         }));
+      }
+
+      if (!options?.skipSync) {
+        await syncFeedTimer({
+          activeBreast: breast,
+          isRunning: true,
+          leftDuration: formData.leftDuration,
+          rightDuration: formData.rightDuration,
+          startTime: new Date().toISOString(),
+        });
       }
       
       timerRef.current = setInterval(() => {
@@ -614,38 +715,41 @@ export default function FeedForm({
     }
   };
   
-  const stopTimer = () => {
+  const stopTimer = async (options?: { skipSync?: boolean }) => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
     setIsTimerRunning(false);
-    
-    // Reset active breast when stopping timer
+
+    const durations = getCurrentDurationsRef.current?.() || {
+      left: formData.leftDuration,
+      right: formData.rightDuration,
+    };
+
     setFormData(prev => ({
       ...prev,
+      leftDuration: durations.left,
+      rightDuration: durations.right,
       activeBreast: ''
     }));
-  };
-  
-  // Format time as hh:mm:ss
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    return [
-      hours.toString().padStart(2, '0'),
-      minutes.toString().padStart(2, '0'),
-      secs.toString().padStart(2, '0')
-    ].join(':');
+
+    if (!options?.skipSync) {
+      await syncFeedTimer({
+        activeBreast: null,
+        isRunning: false,
+        leftDuration: durations.left,
+        rightDuration: durations.right,
+        startTime: null,
+      });
+    }
   };
   
   // Enhanced close handler that resets form state
   const handleClose = () => {
     // Stop any running timer
     if (isTimerRunning) {
-      stopTimer();
+      void stopTimer({ skipSync: true });
     }
     
     // Clear validation errors

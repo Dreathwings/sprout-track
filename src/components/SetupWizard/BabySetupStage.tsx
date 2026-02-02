@@ -2,6 +2,7 @@ import React from 'react';
 import { format } from 'date-fns';
 import { Calendar } from 'lucide-react';
 import { Input } from '@/src/components/ui/input';
+import TimePicker from '@/src/components/ui/time-picker';
 import { Button } from '@/src/components/ui/button';
 import { Calendar as CalendarComponent } from '@/src/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
@@ -131,7 +132,7 @@ const BabySetupStage: React.FC<BabySetupStageProps> = ({
             id="babyGender"
             className={cn(styles.formSelect, "setup-wizard-form-select")}
           >
-            <SelectValue placeholder="Select gender" />
+            <SelectValue placeholder={t('Select gender')} />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="MALE">{t('Male')}</SelectItem>
@@ -153,18 +154,14 @@ const BabySetupStage: React.FC<BabySetupStageProps> = ({
             >
               {t('Feed Warning Time')}
             </label>
-            <Input
+            <TimePicker
               id="feedWarningTime"
-              type="text"
-              pattern="[0-9]{2}:[0-9]{2}"
               value={feedWarningTime}
-              onChange={(e) => setFeedWarningTime(e.target.value)}
-              placeholder="02:00"
+              onChange={(value) => setFeedWarningTime(value)}
               className={cn(styles.formInput, "setup-wizard-form-input")}
+              ariaLabel={t('baby.warning.feedTimeAriaLabel')}
+              required
             />
-            <p className={cn(styles.formHelperText, "setup-wizard-form-helper-text")}>
-              {t('Format: hh:mm')}
-            </p>
           </div>
           <div className={cn(styles.formGroup, "setup-wizard-form-group")}>
             <label 
@@ -173,18 +170,14 @@ const BabySetupStage: React.FC<BabySetupStageProps> = ({
             >
               {t('Diaper Warning Time')}
             </label>
-            <Input
+            <TimePicker
               id="diaperWarningTime"
-              type="text"
-              pattern="[0-9]{2}:[0-9]{2}"
               value={diaperWarningTime}
-              onChange={(e) => setDiaperWarningTime(e.target.value)}
-              placeholder="03:00"
+              onChange={(value) => setDiaperWarningTime(value)}
               className={cn(styles.formInput, "setup-wizard-form-input")}
+              ariaLabel={t('baby.warning.diaperTimeAriaLabel')}
+              required
             />
-            <p className={cn(styles.formHelperText, "setup-wizard-form-helper-text")}>
-              {t('Format: hh:mm')}
-            </p>
           </div>
         </div>
       </div>

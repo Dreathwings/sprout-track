@@ -73,6 +73,9 @@ export default function SettingsModal({
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
         setSettings(settingsData.data);
+        if (typeof window !== 'undefined' && settingsData.data?.timeFormat) {
+          localStorage.setItem('timeFormat', settingsData.data.timeFormat);
+        }
       }
 
       if (babiesResponse.ok) {
@@ -106,6 +109,9 @@ export default function SettingsModal({
       if (response.ok) {
         const data = await response.json();
         setSettings(data.data);
+        if (typeof window !== 'undefined' && data.data?.timeFormat) {
+          localStorage.setItem('timeFormat', data.data.timeFormat);
+        }
       }
     } catch (error) {
       console.error('Error updating settings:', error);
@@ -202,7 +208,7 @@ export default function SettingsModal({
                 disabled={loading}
                 value={settings?.familyName || ''}
                 onChange={(e) => handleSettingsChange({ familyName: e.target.value })}
-                placeholder="Enter family name"
+                placeholder={t('settings.familyNamePlaceholder')}
                 className="w-full"
               />
               </div>
@@ -225,6 +231,27 @@ export default function SettingsModal({
                   </Button>
                 </div>
                 <p className="text-sm text-gray-500 mt-1">{t('PIN must be between 6 and 10 digits')}</p>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="form-label mb-4">{t('settings.timeFormat.title')}</h3>
+              <div>
+                <Label className="form-label">{t('settings.timeFormat.label')}</Label>
+                <Select
+                  value={settings?.timeFormat || '24h'}
+                  onValueChange={(value) => handleSettingsChange({ timeFormat: value })}
+                  disabled={loading}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue placeholder={t('settings.timeFormat.placeholder')} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="24h">{t('settings.timeFormat.option24')}</SelectItem>
+                    <SelectItem value="12h">{t('settings.timeFormat.option12')}</SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-sm text-gray-500 mt-1">{t('settings.timeFormat.description')}</p>
               </div>
             </div>
             
@@ -263,9 +290,9 @@ export default function SettingsModal({
                         onBabySelect?.(babyId);
                       }}
                     >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a baby" />
-                      </SelectTrigger>
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('settings.selectBabyPlaceholder')} />
+                    </SelectTrigger>
                       <SelectContent>
                         {babies.map((baby) => (
                           <SelectItem key={baby.id} value={baby.id}>

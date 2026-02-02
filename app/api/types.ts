@@ -1,4 +1,4 @@
-import { Baby, SleepLog, FeedLog, DiaperLog, MoodLog, Note, Caretaker, Settings as PrismaSettings, Gender, SleepType, SleepQuality, FeedType, BreastSide, DiaperType, Mood, PumpLog, Milestone, MilestoneCategory, Measurement, MeasurementType, Medicine, MedicineLog, EmailConfig as PrismaEmailConfig, EmailProviderType } from '@prisma/client';
+import { Baby, SleepLog, FeedLog, DiaperLog, MoodLog, Note, Caretaker, Settings as PrismaSettings, Gender, SleepType, SleepQuality, FeedType, BreastSide, DiaperType, Mood, PumpLog, Milestone, MilestoneCategory, Measurement, MeasurementType, Medicine, MedicineLog, EmailConfig as PrismaEmailConfig, EmailProviderType, FeedingTimer } from '@prisma/client';
 
 // Family types
 export interface Family {
@@ -115,6 +115,22 @@ export interface FeedLogCreate {
   feedDuration?: number; // Duration in seconds for feeding time
   notes?: string;
   bottleType?: string;
+}
+
+// Feeding timer types
+export type FeedingTimerResponse = Omit<FeedingTimer, 'startTime' | 'createdAt' | 'updatedAt'> & {
+  startTime: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export interface FeedingTimerUpdate {
+  babyId: string;
+  activeBreast?: BreastSide | null;
+  leftDuration?: number;
+  rightDuration?: number;
+  isRunning?: boolean;
+  startTime?: string | null;
 }
 
 // Diaper log types

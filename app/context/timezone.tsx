@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { formatDurationMinutes, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 
 /**
  * Interface for the timezone context
@@ -185,7 +186,6 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
     formatOptions: Intl.DateTimeFormatOptions = {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
     }
   ): string => {
     if (!isoString) return '';
@@ -200,10 +200,18 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
       const dateIsDST = isDaylightSavingTime(date, userTimezone);
       
       // Use the Intl.DateTimeFormat API which properly handles DST
-      const formatter = new Intl.DateTimeFormat('en-US', {
+      const locale = getLocalePreference();
+      const timeFormat = getTimeFormatPreference();
+      const hasTimeFields = 'hour' in formatOptions || 'minute' in formatOptions || 'second' in formatOptions;
+      const resolvedOptions: Intl.DateTimeFormatOptions = {
         ...formatOptions,
-        timeZone: userTimezone
-      });
+        timeZone: userTimezone,
+      };
+      if (hasTimeFields && resolvedOptions.hour12 === undefined) {
+        resolvedOptions.hour12 = timeFormat === '12h';
+      }
+
+      const formatter = new Intl.DateTimeFormat(locale, resolvedOptions);
       
       const formattedDate = formatter.format(date);
       
@@ -226,7 +234,6 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
     return formatDate(isoString, {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
     });
   };
 
@@ -251,7 +258,6 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
       day: 'numeric',
       hour: 'numeric',
       minute: '2-digit',
-      hour12: true,
     });
   };
 
@@ -287,9 +293,7 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
    * Format a duration in minutes to a human-readable string (HH:MM)
    */
   const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}:${mins.toString().padStart(2, '0')}`;
+    return formatDurationMinutes(minutes);
   };
 
   /**

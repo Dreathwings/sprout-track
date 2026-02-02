@@ -178,6 +178,9 @@ export default function SettingsForm({
       if (settingsResponse.ok) {
         const settingsData = await settingsResponse.json();
         setSettings(settingsData.data);
+        if (typeof window !== 'undefined' && settingsData.data?.timeFormat) {
+          localStorage.setItem('timeFormat', settingsData.data.timeFormat);
+        }
 
         // Set local authType from settings, auto-detect if not set
         if (settingsData.data?.authType) {
@@ -315,6 +318,9 @@ export default function SettingsForm({
       const data = await response.json();
       if (data.success) {
         setSettings(data.data);
+        if (typeof window !== 'undefined' && data.data?.timeFormat) {
+          localStorage.setItem('timeFormat', data.data.timeFormat);
+        }
       } else {
         showToast({
           variant: 'error',
@@ -823,6 +829,29 @@ export default function SettingsForm({
                       className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="border-t border-slate-200 pt-6">
+              <h3 className="form-label mb-4">{t('settings.timeFormat.title')}</h3>
+              <div className="space-y-4">
+                <div>
+                  <Label className="form-label">{t('settings.timeFormat.label')}</Label>
+                  <Select
+                    value={settings?.timeFormat || '24h'}
+                    onValueChange={(value) => handleSettingsChange({ timeFormat: value })}
+                    disabled={loading}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={t('settings.timeFormat.placeholder')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="24h">{t('settings.timeFormat.option24')}</SelectItem>
+                      <SelectItem value="12h">{t('settings.timeFormat.option12')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-gray-500 mt-1">{t('settings.timeFormat.description')}</p>
                 </div>
               </div>
             </div>

@@ -4,6 +4,8 @@ import { CalendarEventItemProps } from './calendar-event-item.types';
 import { calendarEventItemStyles as styles } from './calendar-event-item.styles';
 import { CalendarEventType } from '@prisma/client';
 import { MapPin, Clock, RepeatIcon, Users } from 'lucide-react';
+import { useLocalization } from '@/src/context/localization';
+import { formatDateValue, formatTimeValue, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 import './calendar-event-item.css';
 
 /**
@@ -21,23 +23,21 @@ export const CalendarEventItem: React.FC<CalendarEventItemProps> = ({
   onClick,
   className,
 }) => {
+  const { t, language } = useLocalization();
+  const locale = getLocalePreference(language);
+  const timeFormat = getTimeFormatPreference();
+
   // Format time for display
   const formatEventTime = (startTimeStr: string, allDay: boolean, endTimeStr?: string | null) => {
     const startTime = new Date(startTimeStr);
     const endTime = endTimeStr ? new Date(endTimeStr) : undefined;
-    if (allDay) return 'All day';
+    if (allDay) return t('calendar.event.allDay');
     
-    const formatOptions: Intl.DateTimeFormatOptions = {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    };
-    
-    const startFormatted = startTime.toLocaleTimeString('en-US', formatOptions);
+    const startFormatted = formatTimeValue(startTime, { locale, timeFormat });
     
     if (!endTime) return startFormatted;
     
-    const endFormatted = endTime.toLocaleTimeString('en-US', formatOptions);
+    const endFormatted = formatTimeValue(endTime, { locale, timeFormat });
     return `${startFormatted} - ${endFormatted}`;
   };
   
@@ -50,16 +50,19 @@ export const CalendarEventItem: React.FC<CalendarEventItemProps> = ({
     
     // Check if the event is today or tomorrow
     if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+      return t('datetime.today');
     } else if (date.toDateString() === tomorrow.toDateString()) {
-      return 'Tomorrow';
+      return t('datetime.tomorrow');
     }
     
     // Otherwise, return the formatted date
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric'
+    return formatDateValue(date, {
+      locale,
+      formatOptions: {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric',
+      },
     });
   };
   

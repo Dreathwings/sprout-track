@@ -26,4 +26,9 @@ export interface DateTimePickerProps {
    * Optional placeholder text for the input
    */
   placeholder?: string;
+
+  /**
+   * Preferred time format for display
+   */
+  timeFormat?: '24h' | '12h';
 }

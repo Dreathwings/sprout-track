@@ -7,6 +7,7 @@ import { cn } from '@/src/lib/utils';
 import { styles, eventTypeColors } from './baby-quick-info.styles';
 import { NotificationsTabProps } from './baby-quick-info.types';
 import { useLocalization } from '@/src/context/localization';
+import { formatDateValue, formatTimeValue, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 
 /**
  * Get event type style class
@@ -47,7 +48,9 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
   upcomingEvents,
   selectedBaby
 }) => {
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
+  const locale = getLocalePreference(language);
+  const timeFormat = getTimeFormatPreference();
   
   // Format relative time
   const formatRelativeTime = (dateString: string) => {
@@ -223,7 +226,7 @@ const NotificationsTab: React.FC<NotificationsTabProps> = ({
                   {event.title}
                 </div>
                 <div className={cn(styles.eventTime, "baby-quick-info-event-time")}>
-                  {new Date(event.startTime).toLocaleDateString()} at {new Date(event.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  {formatDateValue(event.startTime, { locale })} {t('calendar.event.at')} {formatTimeValue(event.startTime, { locale, timeFormat })}
                 </div>
                 {event.location && (
                   <div className={cn(styles.eventLocation, "baby-quick-info-event-location")}>

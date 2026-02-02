@@ -3,9 +3,12 @@
 import React, { useState, useEffect } from 'react';
 import { useTimezone } from '@/app/context/timezone';
 import { useLocalization } from '@/src/context/localization';
+import { formatTimeValue, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 
 export function TimezoneDebug() {
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
+  const locale = getLocalePreference(language);
+  const timeFormat = getTimeFormatPreference();
 
   // Get timezone context first to avoid hook order issues
   const { 
@@ -213,7 +216,7 @@ export function TimezoneDebug() {
           <span className="font-semibold">{t('Context Loading:')}</span> {info.isLoading ? 'Yes' : 'No'}
         </div>
         <div>
-          <span className="font-semibold">{t('Init Time:')}</span> {new Date(info.initTime).toLocaleTimeString()}
+          <span className="font-semibold">{t('Init Time:')}</span> {formatTimeValue(info.initTime, { locale, timeFormat })}
         </div>
         <div className="text-xs overflow-hidden text-ellipsis">
           <span className="font-semibold">{t('Browser Info:')}</span> {navigator.userAgent}

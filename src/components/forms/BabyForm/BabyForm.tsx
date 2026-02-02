@@ -6,6 +6,7 @@ import { Calendar } from 'lucide-react';
 import { Baby, Gender } from '@prisma/client';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
+import TimePicker from '@/src/components/ui/time-picker';
 import { Calendar as CalendarComponent } from '@/src/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/src/components/ui/popover';
 import {
@@ -218,30 +219,28 @@ export default function BabyForm({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="form-label">{t('Feed Warning Time (hh:mm)')}</label>
-              <Input
-                type="text"
-                pattern="[0-9]{2}:[0-9]{2}"
+              <label className="form-label">{t('baby.warning.feedTimeLabel')}</label>
+              <TimePicker
+                id="feedWarningTime"
                 value={formData.feedWarningTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, feedWarningTime: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, feedWarningTime: value })
                 }
                 className="w-full"
-                placeholder="03:00"
+                ariaLabel={t('baby.warning.feedTimeAriaLabel')}
                 required
               />
             </div>
             <div>
-              <label className="form-label">{t('Diaper Warning Time (hh:mm)')}</label>
-              <Input
-                type="text"
-                pattern="[0-9]{2}:[0-9]{2}"
+              <label className="form-label">{t('baby.warning.diaperTimeLabel')}</label>
+              <TimePicker
+                id="diaperWarningTime"
                 value={formData.diaperWarningTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, diaperWarningTime: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, diaperWarningTime: value })
                 }
                 className="w-full"
-                placeholder="02:00"
+                ariaLabel={t('baby.warning.diaperTimeAriaLabel')}
                 required
               />
             </div>

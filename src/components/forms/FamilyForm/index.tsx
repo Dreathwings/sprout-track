@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Gender } from '@prisma/client';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
+import TimePicker from '@/src/components/ui/time-picker';
 import { Label } from '@/src/components/ui/label';
 import { Calendar } from 'lucide-react';
 import { Calendar as CalendarComponent } from '@/src/components/ui/calendar';
@@ -1076,27 +1077,23 @@ export default function FamilyForm({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <Label className="text-sm font-medium text-gray-700 family-form-text mb-1">{t('Feed Warning Time')}</Label>
-                  <Input
-                    type="text"
-                    pattern="[0-9]{2}:[0-9]{2}"
+                  <TimePicker
+                    id="feedWarningTime"
                     value={feedWarningTime}
-                    onChange={(e) => setFeedWarningTime(e.target.value)}
-                    placeholder="02:00"
+                    onChange={setFeedWarningTime}
                     disabled={loading}
+                    ariaLabel={t('baby.warning.feedTimeAriaLabel')}
                   />
-                  <p className="text-xs text-gray-500 family-form-text-muted mt-1">{t('Format: hh:mm')}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium text-gray-700 family-form-text mb-1">{t('Diaper Warning Time')}</Label>
-                  <Input
-                    type="text"
-                    pattern="[0-9]{2}:[0-9]{2}"
+                  <TimePicker
+                    id="diaperWarningTime"
                     value={diaperWarningTime}
-                    onChange={(e) => setDiaperWarningTime(e.target.value)}
-                    placeholder="03:00"
+                    onChange={setDiaperWarningTime}
                     disabled={loading}
+                    ariaLabel={t('baby.warning.diaperTimeAriaLabel')}
                   />
-                  <p className="text-xs text-gray-500 family-form-text-muted mt-1">{t('Format: hh:mm')}</p>
                 </div>
               </div>
             </div>

@@ -7,6 +7,7 @@ import { getActivityIcon, getActivityStyle, getActivityDescription, getActivityT
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/src/context/theme';
 import { useLocalization } from '@/src/context/localization';
+import { formatDateValue, formatTimeValue, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 
 import './timeline-activity-list.css';
 
@@ -27,7 +28,9 @@ const TimelineActivityList = ({
 }: TimelineActivityListProps) => {
   
 
-  const { t } = useLocalization();  
+  const { t, language } = useLocalization();  
+  const locale = getLocalePreference(language);
+  const timeFormat = getTimeFormatPreference(settings || undefined);
 
   // Extract activeFilter from props if available
   const activeFilter = (onSwipeLeft as any)?.activeFilter as FilterType | undefined;
@@ -213,10 +216,7 @@ const TimelineActivityList = ({
           hourTime = new Date(getActivityTime(firstActivity));
         }
         
-        const hourLabel = hourTime.toLocaleTimeString('en-US', { 
-          hour: 'numeric', 
-          hour12: true 
-        });
+        const hourLabel = formatTimeValue(hourTime, { locale, timeFormat });
         
         // Sort activities within the group by time (newest first)
         const sortedActivities = activities.sort((a, b) => {
@@ -235,7 +235,7 @@ const TimelineActivityList = ({
       .sort((a, b) => b.hourTime.getTime() - a.hourTime.getTime()); // Sort by hour (newest first)
     
     return sortedGroups;
-  }, [filteredActivities]);
+  }, [filteredActivities, locale, timeFormat, selectedDate]);
 
   // Reset when activities change
   useEffect(() => {
@@ -324,30 +324,18 @@ const TimelineActivityList = ({
                         if ('duration' in activity && 'startTime' in activity) {
                           // Sleep activity - show start-end time or just start time
                           const startTime = new Date(activity.startTime);
-                          const startTimeStr = startTime.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          });
+                          const startTimeStr = formatTimeValue(startTime, { locale, timeFormat });
                           
                           if (activity.endTime) {
                             const endTime = new Date(activity.endTime);
-                            const endTimeStr = endTime.toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true,
-                            });
+                            const endTimeStr = formatTimeValue(endTime, { locale, timeFormat });
                             timeStr = `${startTimeStr} - ${endTimeStr}`;
                           } else {
                             timeStr = startTimeStr;
                           }
                         } else {
                           // Other activities - use existing time display
-                          timeStr = activityTime.toLocaleTimeString('en-US', {
-                            hour: 'numeric',
-                            minute: '2-digit',
-                            hour12: true,
-                          });
+                          timeStr = formatTimeValue(activityTime, { locale, timeFormat });
                         }
                         
                         // Extract background color for timeline connector and hover border

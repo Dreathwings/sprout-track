@@ -133,6 +133,9 @@ const Timeline = ({ activities, onActivityDeleted }: TimelineProps) => {
         const data = await response.json();
         if (data.success) {
           setSettings(data.data);
+          if (typeof window !== 'undefined' && data.data?.timeFormat) {
+            localStorage.setItem('timeFormat', data.data.timeFormat);
+          }
         }
       }
     };

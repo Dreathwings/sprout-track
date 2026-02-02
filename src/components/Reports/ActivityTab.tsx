@@ -9,6 +9,7 @@ import { ActivityTabProps, ActivityType } from './reports.types';
 import { getActivityDetails } from '@/src/components/Timeline/utils';
 import { ActivityType as TimelineActivityType } from '@/src/components/Timeline/types';
 import { useLocalization } from '@/src/context/localization';
+import { formatTimeValue, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 
 // Local helper to get activity time that works with reports ActivityType
 const getActivityTimeLocal = (activity: ActivityType): string => {
@@ -190,11 +191,12 @@ const assignLanes = (activities: Omit<NormalizedActivity, 'lane'>[]): { activiti
 };
 
 // Format hour for chart labels (6a, 7a, 12p, 1p, etc.)
-const formatHourLabel = (hour: number): string => {
-  if (hour === 0 || hour === 24) return '12a';
-  if (hour === 12) return '12p';
-  if (hour < 12) return `${hour}a`;
-  return `${hour - 12}p`;
+const formatHourLabel = (hour: number, locale: string, timeFormat: '24h' | '12h'): string => {
+  const baseDate = new Date();
+  const hourValue = hour === 24 ? 0 : hour;
+  baseDate.setHours(hourValue, 0, 0, 0);
+  const formatter = new Intl.DateTimeFormat(locale, { hour: 'numeric', hour12: timeFormat === '12h' });
+  return formatter.format(baseDate);
 };
 
 const ActivityTab: React.FC<ActivityTabProps> = ({
@@ -202,8 +204,10 @@ const ActivityTab: React.FC<ActivityTabProps> = ({
   dateRange,
   isLoading
 }) => {
-  const { t } = useLocalization();
+  const { t, language } = useLocalization();
+  const locale = getLocalePreference(language);
   const [settings, setSettings] = useState<Settings | null>(null);
+  const timeFormat = getTimeFormatPreference(settings || undefined);
   const [hoveredActivity, setHoveredActivity] = useState<NormalizedActivity | null>(null);
   const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -222,6 +226,9 @@ const ActivityTab: React.FC<ActivityTabProps> = ({
           const data = await response.json();
           if (data.success) {
             setSettings(data.data);
+            if (typeof window !== 'undefined' && data.data?.timeFormat) {
+              localStorage.setItem('timeFormat', data.data.timeFormat);
+            }
           }
         }
       } catch {
@@ -397,10 +404,10 @@ const ActivityTab: React.FC<ActivityTabProps> = ({
   const formatTime = useCallback((h: number) => {
     const hours = Math.floor(h);
     const mins = Math.round((h - hours) * 60);
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const displayHour = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
-    return `${displayHour}:${mins.toString().padStart(2, '0')} ${period}`;
-  }, []);
+    const baseDate = new Date();
+    baseDate.setHours(hours, mins, 0, 0);
+    return formatTimeValue(baseDate, { locale, timeFormat });
+  }, [locale, timeFormat]);
 
   // Generate hour grid lines (every hour from 0-24)
   const hourLines = useMemo(() => {
@@ -510,7 +517,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({
                                 transform: 'translateY(-50%)',
                               }}
                             >
-                              {formatHourLabel(hour)}
+                              {formatHourLabel(hour, locale, timeFormat)}
                             </span>
                           )}
                         </div>
@@ -556,7 +563,7 @@ const ActivityTab: React.FC<ActivityTabProps> = ({
                             onMouseLeave={handleMouseLeave}
                             role="button"
                             tabIndex={0}
-                            aria-label={`Activity at ${formatTime(act.startHour)}`}
+                            aria-label={`${t('activityChart.activityAt')} ${formatTime(act.startHour)}`}
                           />
                         );
                       })}

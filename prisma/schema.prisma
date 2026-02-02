@@ -449,6 +449,7 @@ model Settings {
   defaultHeightUnit   String   @default("IN") // Default unit for height measurement
   defaultWeightUnit   String   @default("LB") // Default unit for weight measurement
   defaultTempUnit     String   @default("F") // Default unit for temperature
+  timeFormat          String   @default("24h") // Time display format preference ("24h" or "12h")
   activitySettings    String? // JSON string for activity order and visibility settings
   enableDebugTimer    Boolean  @default(false) // Enable debug session timer
   enableDebugTimezone Boolean  @default(false) // Enable debug timezone tool
@@ -459,6 +460,30 @@ model Settings {
   family   Family? @relation(fields: [familyId], references: [id])
   familyId String? // Nullable initially for migration
 
+  @@index([familyId])
+}
+
+model FeedingTimer {
+  id           String       @id @default(uuid())
+  babyId       String
+  activeBreast BreastSide?
+  leftDuration Int          @default(0) // Duration in seconds
+  rightDuration Int         @default(0) // Duration in seconds
+  isRunning    Boolean      @default(false)
+  startTime    DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  // Add family relation
+  family   Family? @relation(fields: [familyId], references: [id])
+  familyId String?
+
+  // Relationships
+  baby        Baby       @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  caretaker   Caretaker? @relation(fields: [caretakerId], references: [id])
+  caretakerId String?
+
+  @@index([babyId])
   @@index([familyId])
 }
 

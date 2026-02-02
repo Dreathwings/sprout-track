@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/src/context/theme';
 import { Label } from '@/src/components/ui/label';
 import { useLocalization } from '@/src/context/localization';
+import { formatDateValue, formatTimeValue, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 
 import '../timeline-activity-list.css';
 
@@ -19,7 +20,9 @@ const TimelineV2ActivityList = ({
 }: TimelineActivityListProps) => {
   
 
-  const { t } = useLocalization();  
+  const { t, language } = useLocalization();  
+  const locale = getLocalePreference(language);
+  const timeFormat = getTimeFormatPreference(settings || undefined);
 
   const { theme } = useTheme();
   
@@ -37,11 +40,11 @@ const TimelineV2ActivityList = ({
 
   const getTimeOfDayLabel = (timeOfDay: string): string => {
     switch (timeOfDay) {
-      case 'early-morning': return 'Early Morning';
-      case 'morning': return 'Morning';
-      case 'afternoon': return 'Afternoon';
-      case 'evening': return 'Evening';
-      case 'night': return 'Night';
+      case 'early-morning': return t('timeline.timeOfDay.earlyMorning');
+      case 'morning': return t('timeline.timeOfDay.morning');
+      case 'afternoon': return t('timeline.timeOfDay.afternoon');
+      case 'evening': return t('timeline.timeOfDay.evening');
+      case 'night': return t('timeline.timeOfDay.night');
       default: return timeOfDay;
     }
   };
@@ -162,46 +165,29 @@ const TimelineV2ActivityList = ({
                               const endDateStr = endTime.toDateString();
                               const isOvernight = startDateStr !== endDateStr;
                               
-                              const startTimeStr = startTime.toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true,
-                              });
-                              
-                              const endTimeStr = endTime.toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true,
-                              });
+                              const startTimeStr = formatTimeValue(startTime, { locale, timeFormat });
+                              const endTimeStr = formatTimeValue(endTime, { locale, timeFormat });
                               
                               if (isOvernight) {
                                 // Show dates for overnight entries
-                                const startDateFormatted = startTime.toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
+                                const startDateFormatted = formatDateValue(startTime, {
+                                  locale,
+                                  formatOptions: { month: 'short', day: 'numeric' },
                                 });
-                                const endDateFormatted = endTime.toLocaleDateString('en-US', {
-                                  month: 'short',
-                                  day: 'numeric',
+                                const endDateFormatted = formatDateValue(endTime, {
+                                  locale,
+                                  formatOptions: { month: 'short', day: 'numeric' },
                                 });
                                 timeStr = `${startDateFormatted} ${startTimeStr} - ${endDateFormatted} ${endTimeStr}`;
                               } else {
                                 timeStr = `${startTimeStr} - ${endTimeStr}`;
                               }
                             } else {
-                              const startTimeStr = startTime.toLocaleTimeString('en-US', {
-                                hour: 'numeric',
-                                minute: '2-digit',
-                                hour12: true,
-                              });
+                              const startTimeStr = formatTimeValue(startTime, { locale, timeFormat });
                               timeStr = startTimeStr;
                             }
                           } else {
-                            timeStr = activityTime.toLocaleTimeString('en-US', {
-                              hour: 'numeric',
-                              minute: '2-digit',
-                              hour12: true,
-                            });
+                            timeStr = formatTimeValue(activityTime, { locale, timeFormat });
                           }
                           
                           const getActivityColor = (bgClass: string) => {
@@ -446,4 +432,3 @@ const TimelineV2ActivityList = ({
 };
 
 export default TimelineV2ActivityList;
-

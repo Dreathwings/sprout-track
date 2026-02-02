@@ -8,6 +8,7 @@ import {
 } from '@/src/components/ui/dialog';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
+import TimePicker from '@/src/components/ui/time-picker';
 import {
   Select,
   SelectContent,
@@ -157,15 +158,15 @@ export default function BabyModal({
           </div>
           <div>
             <label className="form-label">{t('Gender')}</label>
-            <Select
-              value={formData.gender}
-              onValueChange={(value) =>
-                setFormData({ ...formData, gender: value })
-              }
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select gender" />
-              </SelectTrigger>
+              <Select
+                value={formData.gender}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, gender: value })
+                }
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder={t('Select gender')} />
+                </SelectTrigger>
               <SelectContent>
                 <SelectItem value="MALE">{t('Male')}</SelectItem>
                 <SelectItem value="FEMALE">{t('Female')}</SelectItem>
@@ -174,30 +175,28 @@ export default function BabyModal({
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="form-label">{t('Feed Warning Time (hh:mm)')}</label>
-              <Input
-                type="text"
-                pattern="[0-9]{2}:[0-9]{2}"
+              <label className="form-label">{t('baby.warning.feedTimeLabel')}</label>
+              <TimePicker
+                id="feedWarningTime"
                 value={formData.feedWarningTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, feedWarningTime: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, feedWarningTime: value })
                 }
                 className="w-full"
-                placeholder="03:00"
+                ariaLabel={t('baby.warning.feedTimeAriaLabel')}
                 required
               />
             </div>
             <div>
-              <label className="form-label">{t('Diaper Warning Time (hh:mm)')}</label>
-              <Input
-                type="text"
-                pattern="[0-9]{2}:[0-9]{2}"
+              <label className="form-label">{t('baby.warning.diaperTimeLabel')}</label>
+              <TimePicker
+                id="diaperWarningTime"
                 value={formData.diaperWarningTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, diaperWarningTime: e.target.value })
+                onChange={(value) =>
+                  setFormData({ ...formData, diaperWarningTime: value })
                 }
                 className="w-full"
-                placeholder="02:00"
+                ariaLabel={t('baby.warning.diaperTimeAriaLabel')}
                 required
               />
             </div>

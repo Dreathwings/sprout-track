@@ -36,6 +36,7 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
           defaultHeightUnit: 'IN',
           defaultWeightUnit: 'LB',
           defaultTempUnit: 'F',
+          timeFormat: '24h',
           familyId: targetFamilyId,
         },
       });
@@ -100,7 +101,7 @@ async function handlePut(req: NextRequest, authContext: AuthResult) {
     const data: Partial<Settings> = {};
     const allowedFields: (keyof Settings)[] = [
       'familyName', 'securityPin', 'authType', 'defaultBottleUnit', 'defaultSolidsUnit',
-      'defaultHeightUnit', 'defaultWeightUnit', 'defaultTempUnit',
+      'defaultHeightUnit', 'defaultWeightUnit', 'defaultTempUnit', 'timeFormat',
       'enableDebugTimer', 'enableDebugTimezone'
     ];
 

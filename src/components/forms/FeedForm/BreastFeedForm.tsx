@@ -37,17 +37,6 @@ const extractTimeComponents = (totalSeconds: number) => {
   return { hours, minutes, seconds };
 };
 
-// Format time as hh:mm:ss
-const formatTime = (seconds: number) => {
-  const { hours, minutes, seconds: secs } = extractTimeComponents(seconds);
-  
-  return [
-    hours.toString().padStart(2, '0'),
-    minutes.toString().padStart(2, '0'),
-    secs.toString().padStart(2, '0')
-  ].join(':');
-};
-
 export default function BreastFeedForm({
   side,
   leftDuration,

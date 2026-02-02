@@ -25,6 +25,7 @@ import { useToast } from '@/src/components/ui/toast';
 import { handleExpirationError } from '@/src/lib/expiration-error-handler';
 import { Plus, Minus } from 'lucide-react';
 import { useLocalization } from '@/src/context/localization';
+import { formatDurationMinutes } from '@/src/lib/time-format';
 
 import './pump-form.css';
 
@@ -84,6 +85,10 @@ export default function PumpForm({
       return new Date(); // Fallback to current date
     }
   });
+
+  const durationMinutes = selectedStartDateTime && selectedEndDateTime
+    ? Math.max(0, Math.floor((selectedEndDateTime.getTime() - selectedStartDateTime.getTime()) / 60000))
+    : null;
   
   const [formData, setFormData] = useState({
     startTime: initialTime,
@@ -362,8 +367,8 @@ export default function PumpForm({
         const data = await response.json();
         showToast({
           variant: 'error',
-          title: 'Error',
-          message: data.error || 'Failed to save pump log',
+          title: t('errors.title'),
+          message: data.error || t('pump.errors.saveFailed'),
           duration: 5000,
         });
         return;
@@ -378,8 +383,8 @@ export default function PumpForm({
       } else {
         showToast({
           variant: 'error',
-          title: 'Error',
-          message: data.error || 'Failed to save pump log',
+          title: t('errors.title'),
+          message: data.error || t('pump.errors.saveFailed'),
           duration: 5000,
         });
       }
@@ -387,8 +392,8 @@ export default function PumpForm({
       console.error('Error saving pump log:', error);
       showToast({
         variant: 'error',
-        title: 'Error',
-        message: 'An unexpected error occurred. Please try again.',
+        title: t('errors.title'),
+        message: t('pump.errors.unexpected'),
         duration: 5000,
       });
     } finally {
@@ -426,6 +431,11 @@ export default function PumpForm({
                 disabled={loading}
                 placeholder={t("Select end time...")}
               />
+              {durationMinutes !== null && (
+                <p className="text-sm text-gray-500">
+                  {t('Duration')}: {formatDurationMinutes(durationMinutes)}
+                </p>
+              )}
             </div>
             
             {/* Unit Selection with Buttons - Moved above amount inputs */}

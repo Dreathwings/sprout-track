@@ -1,4 +1,5 @@
 import { Settings } from '@prisma/client';
+import { formatDateTimeWithRelativeLabel, formatDurationMinutes, getLocalePreference, getTimeFormatPreference } from '@/src/lib/time-format';
 import { 
   Moon, 
   Icon, 
@@ -86,47 +87,26 @@ export const getActivityTime = (activity: ActivityType): string => {
   return new Date().toLocaleString();
 };
 
-export const formatTime = (date: string, settings: Settings | null, includeDate: boolean = true) => {
-  if (!date) return 'Invalid Date';
+export const formatTime = (date: string, settings: Settings | null, includeDate: boolean = true, t?: (key: string) => string) => {
+  const timeFormat = getTimeFormatPreference(settings || undefined);
+  const locale = getLocalePreference();
+  const translate = t || ((key: string) => key);
 
   try {
-    const dateObj = new Date(date);
-    if (isNaN(dateObj.getTime())) return 'Invalid Date';
-
-    const timeStr = dateObj.toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
+    return formatDateTimeWithRelativeLabel(date, {
+      locale,
+      timeFormat,
+      includeDate,
+      t: translate,
     });
-
-    if (!includeDate) return timeStr;
-
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    const isToday = dateObj.toDateString() === today.toDateString();
-    const isYesterday = dateObj.toDateString() === yesterday.toDateString();
-
-    const dateStr = isToday 
-      ? 'Today'
-      : isYesterday 
-      ? 'Yesterday'
-      : dateObj.toLocaleDateString('en-US', {
-          month: 'short',
-          day: 'numeric',
-        }).replace(/(\d+)$/, '$1,');
-    return `${dateStr} ${timeStr}`;
   } catch (error) {
     console.error('Error formatting time:', error);
-    return 'Invalid Date';
+    return translate('datetime.invalid');
   }
 };
 
 export const formatDuration = (minutes: number): string => {
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `(${hours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')})`;
+  return `(${formatDurationMinutes(minutes)})`;
 };
 
 export const getActivityDetails = (activity: ActivityType, settings: Settings | null, t: (key: string) => string): ActivityDetails => {
@@ -138,11 +118,11 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
   if ('type' in activity) {
     if ('duration' in activity) {
       // For sleep activities, always show dates with times
-      const startTime = activity.startTime ? formatTime(activity.startTime, settings, true) : t('unknown');
+      const startTime = activity.startTime ? formatTime(activity.startTime, settings, true, t) : t('unknown');
       let endTime = t('ongoing');
       
       if (activity.endTime) {
-        endTime = formatTime(activity.endTime, settings, true);
+        endTime = formatTime(activity.endTime, settings, true, t);
       }
       
       const duration = activity.duration ? ` ${formatDuration(activity.duration)}` : '';
@@ -211,7 +191,7 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
         }
       };
       const details = [
-        { label: t('Time'), value: formatTime(activity.time, settings) },
+        { label: t('Time'), value: formatTime(activity.time, settings, true, t) },
         { label: t('Type'), value: formatFeedType(activity.type) },
       ];
 
@@ -297,7 +277,7 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
         }
       };
       const details = [
-        { label: t('Time'), value: formatTime(activity.time, settings) },
+        { label: t('Time'), value: formatTime(activity.time, settings, true, t) },
         { label: t('Type'), value: formatDiaperType(activity.type) },
       ];
 
@@ -324,7 +304,7 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
   }
   if ('content' in activity) {
     const noteDetails = [
-      { label: t('Time'), value: formatTime(activity.time, settings) },
+      { label: t('Time'), value: formatTime(activity.time, settings, true, t) },
       { label: t('Content'), value: activity.content },
       { label: t('Category'), value: activity.category || t('Not specified') },
     ];
@@ -336,7 +316,7 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
   }
   if ('soapUsed' in activity) {
     const bathDetails = [
-      { label: t('Time'), value: formatTime(activity.time, settings) },
+      { label: t('Time'), value: formatTime(activity.time, settings, true, t) },
       { label: t('Soap Used'), value: activity.soapUsed ? t('Yes') : t('No') },
       { label: t('Shampoo Used'), value: activity.shampooUsed ? t('Yes') : t('No') },
     ];
@@ -359,10 +339,12 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
     const isPumpActivity = (act: any): act is { 
       startTime?: string; 
       endTime?: string | null; 
+      duration?: number | null;
       leftAmount?: number; 
       rightAmount?: number; 
       totalAmount?: number; 
       unit?: string;
+      unitAbbr?: string | null;
       notes?: string;
     } => {
       return 'leftAmount' in act || 'rightAmount' in act;
@@ -371,27 +353,38 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
     if (isPumpActivity(activity)) {
       // Add start time
       if (activity.startTime) {
-        pumpDetails.push({ label: t('Start Time'), value: formatTime(activity.startTime, settings) });
+        pumpDetails.push({ label: t('Start Time'), value: formatTime(activity.startTime, settings, true, t) });
       }
       
       // Add end time if available
       if (activity.endTime) {
-        pumpDetails.push({ label: t('End Time'), value: formatTime(activity.endTime, settings) });
+        pumpDetails.push({ label: t('End Time'), value: formatTime(activity.endTime, settings, true, t) });
       }
       
+      const unitLabel = activity.unitAbbr || activity.unit || 'oz';
+      const durationMinutes = activity.duration ?? (
+        activity.startTime && activity.endTime
+          ? Math.max(0, Math.floor((new Date(activity.endTime).getTime() - new Date(activity.startTime).getTime()) / 60000))
+          : null
+      );
+
+      if (durationMinutes !== null && !Number.isNaN(durationMinutes)) {
+        pumpDetails.push({ label: t('Duration'), value: formatDurationMinutes(durationMinutes) });
+      }
+
       // Add left amount if available
       if (activity.leftAmount) {
-        pumpDetails.push({ label: t('Left Breast'), value: `${activity.leftAmount} ${activity.unit || 'oz'}` });
+        pumpDetails.push({ label: t('Left Breast'), value: `${activity.leftAmount} ${unitLabel}` });
       }
       
       // Add right amount if available
       if (activity.rightAmount) {
-        pumpDetails.push({ label: t('Right Breast'), value: `${activity.rightAmount} ${activity.unit || 'oz'}` });
+        pumpDetails.push({ label: t('Right Breast'), value: `${activity.rightAmount} ${unitLabel}` });
       }
       
       // Add total amount if available
       if (activity.totalAmount) {
-        pumpDetails.push({ label: t('Total Amount'), value: `${activity.totalAmount} ${activity.unit || 'oz'}` });
+        pumpDetails.push({ label: t('Total Amount'), value: `${activity.totalAmount} ${unitLabel}` });
       }
       
       // Add notes if available
@@ -420,7 +413,7 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
     };
 
     const milestoneDetails = [
-      { label: t('Date'), value: formatTime(activity.date, settings) },
+      { label: t('Date'), value: formatTime(activity.date, settings, true, t) },
       { label: t('Title'), value: activity.title },
       { label: t('Category'), value: formatMilestoneCategory(activity.category) },
     ];
@@ -468,7 +461,7 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
     };
 
     const measurementDetails = [
-      { label: t('Date'), value: formatTime(activity.date, settings) },
+      { label: t('Date'), value: formatTime(activity.date, settings, true, t) },
       { label: t('Type'), value: formatMeasurementType(activity.type) },
       { label: t('Value'), value: `${activity.value} ${activity.unit}` },
     ];
@@ -494,7 +487,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
       medName = (activity.medicine as { name?: string }).name || medName;
     }
     const dose = activity.doseAmount ? `${activity.doseAmount} ${activity.unitAbbr || ''}`.trim() : '';
-    const medTime = formatTime(activity.time, settings, true);
+    const medTime = formatTime(activity.time, settings, true, t);
     let notes = activity.notes ? activity.notes : '';
     if (notes.length > 50) notes = notes.substring(0, 50) + '...';
     return {
@@ -504,8 +497,8 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
   }
   if ('type' in activity) {
     if ('duration' in activity) {
-      const startTimeFormatted = activity.startTime ? formatTime(activity.startTime, settings, true) : t('unknown');
-      const endTimeFormatted = activity.endTime ? formatTime(activity.endTime, settings, true) : t('ongoing');
+      const startTimeFormatted = activity.startTime ? formatTime(activity.startTime, settings, true, t) : t('unknown');
+      const endTimeFormatted = activity.endTime ? formatTime(activity.endTime, settings, true, t) : t('ongoing');
       const duration = activity.duration ? ` ${formatDuration(activity.duration)}` : '';
       
       // Format location
@@ -604,7 +597,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
         details = details ? `${details} - ${truncatedNotes}` : truncatedNotes;
       }
       
-      const time = formatTime(activity.time, settings, true);
+      const time = formatTime(activity.time, settings, true, t);
       return {
         type: formatFeedType(activity.type),
         details: `${details} - ${time}`
@@ -657,7 +650,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
       // Add blowout information for all diaper types
       const blowoutText = activity.blowout ? ` - ${t('Blowout/Leakage')}` : '';
 
-      const time = formatTime(activity.time, settings, true);
+      const time = formatTime(activity.time, settings, true, t);
       return {
         type: formatDiaperType(activity.type),
         details: `${details}${time}${blowoutText}`
@@ -665,7 +658,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
     }
   }
   if ('content' in activity) {
-    const time = formatTime(activity.time, settings, true);
+    const time = formatTime(activity.time, settings, true, t);
     const truncatedContent = activity.content.length > 50 ? activity.content.substring(0, 50) + '...' : activity.content;
     return {
       type: activity.category || t('Note'),
@@ -673,7 +666,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
     };
   }
   if ('soapUsed' in activity) {
-    const time = formatTime(activity.time, settings, true);
+    const time = formatTime(activity.time, settings, true, t);
     let bathDetails = '';
     
     // Determine bath details based on soap and shampoo usage
@@ -715,7 +708,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
     };
     
     if (isPumpActivity(activity)) {
-      const startTime = activity.startTime ? formatTime(activity.startTime, settings, true) : t('unknown');
+      const startTime = activity.startTime ? formatTime(activity.startTime, settings, true, t) : t('unknown');
       let details = startTime;
       
       // Add duration if available
@@ -761,7 +754,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
       }
     };
     
-    const date = formatTime(activity.date, settings, true);
+    const date = formatTime(activity.date, settings, true, t);
     const category = formatMilestoneCategory(activity.category);
     
     // Format title with label
@@ -794,7 +787,7 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
       }
     };
     
-    const date = formatTime(activity.date, settings, true);
+    const date = formatTime(activity.date, settings, true, t);
     
     return {
       type: formatMeasurementType(activity.type),
