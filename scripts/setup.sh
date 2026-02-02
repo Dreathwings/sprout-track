@@ -84,8 +84,18 @@ echo "Prisma clients generated successfully."
 echo "Step 5: Running database migrations..."
 
 echo "  - Deploying main database migrations..."
-npx prisma migrate deploy
-if [ $? -ne 0 ]; then
+MIGRATE_OUTPUT=$(npx prisma migrate deploy 2>&1)
+MIGRATE_STATUS=$?
+if [ $MIGRATE_STATUS -ne 0 ]; then
+    echo "$MIGRATE_OUTPUT"
+    if echo "$MIGRATE_OUTPUT" | rg -q "P3009"; then
+        echo ""
+        echo "Detected a failed migration in the database."
+        echo "For a fresh install, delete db/baby-tracker.db and rerun this script."
+        echo "For existing data, resolve the failed migration before retrying:"
+        echo "  npx prisma migrate resolve --rolled-back 20260110121000_add_feeding_timer"
+        echo "  npx prisma migrate deploy"
+    fi
     echo "Error: Main database migrations failed! Setup aborted."
     exit 1
 fi
