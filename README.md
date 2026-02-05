@@ -195,6 +195,10 @@ npm run prisma:migrate
 ```bash
 npm run prisma:seed
 ```
+To seed with localized defaults for seeded data (family name, system caretaker, unit names), set `SEED_LANGUAGE` or `SEED_LOCALE` (supports `fr` and `es`, falls back to English):
+```bash
+SEED_LANGUAGE=fr npm run prisma:seed
+```
 ### To run the development server:
 ```bash
 npm run dev
