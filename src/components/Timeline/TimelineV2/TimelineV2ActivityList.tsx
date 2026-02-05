@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/src/context/theme';
 import { Label } from '@/src/components/ui/label';
 import { useLocalization } from '@/src/context/localization';
-import { formatDate, formatTime as formatTimeDisplay, getDateTimePreferences } from '@/src/lib/date-time';
+import { formatDate, formatDuration, formatTime as formatTimeDisplay, getDateTimePreferences } from '@/src/lib/date-time';
 
 import '../timeline-activity-list.css';
 
@@ -163,7 +163,17 @@ const TimelineV2ActivityList = ({
                           const activityTime = new Date(getActivityTime(activity));
                           let timeStr: string;
                           
-                          if ('duration' in activity && 'startTime' in activity) {
+                          if ('leftAmount' in activity || 'rightAmount' in activity) {
+                            if (activity.endTime) {
+                              const endTime = new Date(activity.endTime);
+                              timeStr = formatTimeDisplay(endTime, dateTimePreferences);
+                            } else if (activity.startTime) {
+                              const startTime = new Date(activity.startTime);
+                              timeStr = formatTimeDisplay(startTime, dateTimePreferences);
+                            } else {
+                              timeStr = '';
+                            }
+                          } else if ('duration' in activity && 'startTime' in activity) {
                             const startTime = new Date(activity.startTime);
                             const startDateStr = startTime.toDateString();
                             
@@ -249,6 +259,31 @@ const TimelineV2ActivityList = ({
                                 </Label>
                                 <div className="text-xs text-gray-600 event-details">
                                   {(() => {
+                                    if ('leftAmount' in activity || 'rightAmount' in activity) {
+                                      let durationMinutes = 0;
+                                      if (activity.duration) {
+                                        durationMinutes = activity.duration;
+                                      } else if (activity.startTime && activity.endTime) {
+                                        const start = new Date(activity.startTime).getTime();
+                                        const end = new Date(activity.endTime).getTime();
+                                        durationMinutes = Math.floor((end - start) / 60000);
+                                      }
+
+                                      const endTimeLabel = activity.endTime
+                                        ? formatTimeDisplay(new Date(activity.endTime), dateTimePreferences)
+                                        : activity.startTime
+                                        ? formatTimeDisplay(new Date(activity.startTime), dateTimePreferences)
+                                        : '';
+                                      const durationLabel = durationMinutes > 0
+                                        ? formatDuration(durationMinutes * 60000, dateTimePreferences, {
+                                            style: 'auto',
+                                            minuteLabel: t('min'),
+                                          })
+                                        : '';
+
+                                      return [endTimeLabel, durationLabel].filter(Boolean).join(' • ');
+                                    }
+
                                     if ('duration' in activity) {
                                       const locationMap: Record<string, string> = {
                                         'crib': t('Crib'),
@@ -265,7 +300,13 @@ const TimelineV2ActivityList = ({
                                           word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
                                         ).join(' ');
                                       })() : '';
-                                      const duration = activity.duration ? `${Math.floor(activity.duration / 60)}h ${activity.duration % 60}m` : '';
+                                      const duration = activity.duration
+                                        ? formatDuration(activity.duration * 60000, dateTimePreferences, {
+                                            style: 'long',
+                                            hourLabel: t('h'),
+                                            minuteLabel: t('min'),
+                                          })
+                                        : '';
                                       const parts = [];
                                       if (location) parts.push(location);
                                       if (duration) parts.push(duration);
@@ -358,12 +399,7 @@ const TimelineV2ActivityList = ({
                                     }
                                     
                                     if ('leftAmount' in activity || 'rightAmount' in activity) {
-                                      const amounts = [];
-                                      const unit = ((activity as any).unit || 'oz').toLowerCase();
-                                      if ((activity as any).leftAmount) amounts.push(`L: ${(activity as any).leftAmount} ${unit}`);
-                                      if ((activity as any).rightAmount) amounts.push(`R: ${(activity as any).rightAmount} ${unit}`);
-                                      if ((activity as any).totalAmount) amounts.push(`Total: ${(activity as any).totalAmount} ${unit}`);
-                                      return amounts.join(' • ');
+                                      return '';
                                     }
                                     
                                     if ('title' in activity && 'category' in activity) {

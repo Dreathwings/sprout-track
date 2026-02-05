@@ -19,7 +19,7 @@ import {
   ActivityDescription, 
   ActivityStyle 
 } from './types';
-import { formatDate, formatTime as formatTimeDisplay, getDateTimePreferences } from '@/src/lib/date-time';
+import { formatDate, formatDuration, formatTime as formatTimeDisplay, getDateTimePreferences } from '@/src/lib/date-time';
 
 export const getActivityIcon = (activity: ActivityType) => {
   if ('doseAmount' in activity && 'medicineId' in activity) {
@@ -121,11 +121,11 @@ export const formatTime = (date: string, settings: Settings | null, includeDate:
   }
 };
 
-export const formatDuration = (minutes: number): string => {
-  const hours = Math.floor(minutes / 60);
-  const remainingMinutes = minutes % 60;
-  return `(${hours.toString().padStart(2, '0')}:${remainingMinutes.toString().padStart(2, '0')})`;
-};
+const getPreferences = (settings: Settings | null) =>
+  getDateTimePreferences({
+    timeFormat: settings?.timeFormat as '24h' | '12h' | undefined,
+    dateFormat: settings?.dateFormat as 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | undefined,
+  });
 
 export const getActivityDetails = (activity: ActivityType, settings: Settings | null, t: (key: string) => string): ActivityDetails => {
   // Common details that should be added to all activity types if caretaker name exists
@@ -143,7 +143,9 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
         endTime = formatTime(activity.endTime, settings, true);
       }
       
-      const duration = activity.duration ? ` ${formatDuration(activity.duration)}` : '';
+      const duration = activity.duration
+        ? ` ${formatDuration(activity.duration * 60000, getPreferences(settings), { style: 'clock', padHours: true })}`
+        : '';
       const formatSleepQuality = (quality: string) => {
         switch (quality) {
           case 'POOR': return t('Poor');
@@ -174,9 +176,11 @@ export const getActivityDetails = (activity: ActivityType, settings: Settings | 
         // Format duration as hours and minutes
         let durationValue = t('unknown');
         if (activity.duration) {
-          const hours = Math.floor(activity.duration / 60);
-          const mins = activity.duration % 60;
-          durationValue = `${hours}h ${mins}${t('min')}`;
+          durationValue = formatDuration(activity.duration * 60000, getPreferences(settings), {
+            style: 'long',
+            hourLabel: t('h'),
+            minuteLabel: t('min'),
+          });
         }
         details.push(
           { label: t('End Time'), value: endTime },
@@ -510,7 +514,9 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
     if ('duration' in activity) {
       const startTimeFormatted = activity.startTime ? formatTime(activity.startTime, settings, true) : t('unknown');
       const endTimeFormatted = activity.endTime ? formatTime(activity.endTime, settings, true) : t('ongoing');
-      const duration = activity.duration ? ` ${formatDuration(activity.duration)}` : '';
+      const duration = activity.duration
+        ? ` ${formatDuration(activity.duration * 60000, getPreferences(settings), { style: 'clock', padHours: true })}`
+        : '';
       
       // Format location
       let locationText = '';
@@ -726,20 +732,29 @@ export const getActivityDescription = (activity: ActivityType, settings: Setting
     };
     
     if (isPumpActivity(activity)) {
-      const startTime = activity.startTime ? formatTime(activity.startTime, settings, true) : t('unknown');
-      let details = startTime;
-      
-      // Add duration if available
+      const preferences = getPreferences(settings);
+      const endTime = activity.endTime
+        ? formatTime(activity.endTime, settings, true)
+        : activity.startTime
+        ? formatTime(activity.startTime, settings, true)
+        : '';
+      let details = endTime;
+
+      let durationMinutes = 0;
       if (activity.duration) {
-        details += ` ${formatDuration(activity.duration)}`;
+        durationMinutes = activity.duration;
       } else if (activity.startTime && activity.endTime) {
-        // Calculate duration if not explicitly provided
         const start = new Date(activity.startTime).getTime();
         const end = new Date(activity.endTime).getTime();
-        const durationMinutes = Math.floor((end - start) / 60000);
-        if (!isNaN(durationMinutes) && durationMinutes > 0) {
-          details += ` ${formatDuration(durationMinutes)}`;
-        }
+        durationMinutes = Math.floor((end - start) / 60000);
+      }
+
+      if (durationMinutes > 0) {
+        const durationLabel = formatDuration(durationMinutes * 60000, preferences, {
+          style: 'auto',
+          minuteLabel: t('min'),
+        });
+        details = [details, durationLabel].filter(Boolean).join(' ');
       }
       
       // Always show left, right, and total amounts when available

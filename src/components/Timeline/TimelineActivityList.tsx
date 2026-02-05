@@ -7,7 +7,7 @@ import { getActivityIcon, getActivityStyle, getActivityDescription, getActivityT
 import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/src/context/theme';
 import { useLocalization } from '@/src/context/localization';
-import { formatTime as formatTimeDisplay, getDateTimePreferences } from '@/src/lib/date-time';
+import { formatDuration, formatTime as formatTimeDisplay, getDateTimePreferences } from '@/src/lib/date-time';
 
 import './timeline-activity-list.css';
 
@@ -328,7 +328,17 @@ const TimelineActivityList = ({
                         const activityTime = new Date(getActivityTime(activity));
                         let timeStr: string;
                         
-                        if ('duration' in activity && 'startTime' in activity) {
+                        if ('leftAmount' in activity || 'rightAmount' in activity) {
+                          if (activity.endTime) {
+                            const endTime = new Date(activity.endTime);
+                            timeStr = formatTimeDisplay(endTime, dateTimePreferences);
+                          } else if (activity.startTime) {
+                            const startTime = new Date(activity.startTime);
+                            timeStr = formatTimeDisplay(startTime, dateTimePreferences);
+                          } else {
+                            timeStr = '';
+                          }
+                        } else if ('duration' in activity && 'startTime' in activity) {
                           // Sleep activity - show start-end time or just start time
                           const startTime = new Date(activity.startTime);
                           const startTimeStr = formatTimeDisplay(startTime, dateTimePreferences);
@@ -425,6 +435,31 @@ const TimelineActivityList = ({
                                       <p className="text-sm text-gray-900 timeline-activity-details truncate">
                                         {(() => {
                                           // Generate meaningful summaries for each activity type
+                                          if ('leftAmount' in activity || 'rightAmount' in activity) {
+                                            let durationMinutes = 0;
+                                            if (activity.duration) {
+                                              durationMinutes = activity.duration;
+                                            } else if (activity.startTime && activity.endTime) {
+                                              const start = new Date(activity.startTime).getTime();
+                                              const end = new Date(activity.endTime).getTime();
+                                              durationMinutes = Math.floor((end - start) / 60000);
+                                            }
+
+                                            const endTimeLabel = activity.endTime
+                                              ? formatTimeDisplay(new Date(activity.endTime), dateTimePreferences)
+                                              : activity.startTime
+                                              ? formatTimeDisplay(new Date(activity.startTime), dateTimePreferences)
+                                              : '';
+                                            const durationLabel = durationMinutes > 0
+                                              ? formatDuration(durationMinutes * 60000, dateTimePreferences, {
+                                                  style: 'auto',
+                                                  minuteLabel: t('min'),
+                                                })
+                                              : '';
+
+                                            return [endTimeLabel, durationLabel].filter(Boolean).join(' • ');
+                                          }
+
                                           if ('duration' in activity) {
                                             // Sleep activity
                                             const locationMap: Record<string, string> = {
@@ -442,7 +477,13 @@ const TimelineActivityList = ({
                                                 word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
                                               ).join(' ');
                                             })() : '';
-                                            const duration = activity.duration ? `${Math.floor(activity.duration / 60)}h ${activity.duration % 60}m` : '';
+                                            const duration = activity.duration
+                                              ? formatDuration(activity.duration * 60000, dateTimePreferences, {
+                                                  style: 'long',
+                                                  hourLabel: t('h'),
+                                                  minuteLabel: t('min'),
+                                                })
+                                              : '';
                                             const quality = ('quality' in activity && activity.quality) ? (() => {
                                               const qualityMap: Record<string, string> = {
                                                 'POOR': t('Poor'),

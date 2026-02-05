@@ -12,6 +12,13 @@ export interface DateTimeFormatOptions {
   language?: string;
 }
 
+export interface DurationFormatOptions {
+  style?: 'auto' | 'clock' | 'long';
+  minuteLabel?: string;
+  hourLabel?: string;
+  padHours?: boolean;
+}
+
 export const DEFAULT_TIME_FORMAT: TimeFormat = '24h';
 export const DEFAULT_DATE_FORMAT: DateFormat = 'MM/DD/YYYY';
 
@@ -103,6 +110,44 @@ export const formatDateTime = (
   if (!datePart) return timePart;
   if (!timePart) return datePart;
   return `${datePart} ${timePart}`;
+};
+
+export const formatDuration = (
+  durationMs: number,
+  _preferences?: DateTimePreferences | null,
+  options?: DurationFormatOptions
+): string => {
+  if (!Number.isFinite(durationMs)) return '';
+  const totalMinutes = Math.floor(durationMs / 60000);
+  if (totalMinutes < 0) return '';
+
+  const style = options?.style ?? 'auto';
+  const minutesLabel = options?.minuteLabel ?? '';
+  const hoursLabel = options?.hourLabel ?? '';
+
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  const hourText = options?.padHours ? hours.toString().padStart(2, '0') : `${hours}`;
+  const minuteText = minutes.toString().padStart(2, '0');
+
+  if (style === 'clock') {
+    return `${hourText}:${minuteText}`;
+  }
+
+  if (style === 'long') {
+    if (hours > 0 && minutes > 0) {
+      return `${hours}${hoursLabel} ${minutes}${minutesLabel}`.trim();
+    }
+    if (hours > 0) {
+      return `${hours}${hoursLabel}`.trim();
+    }
+    return `${minutes}${minutesLabel}`.trim();
+  }
+
+  if (totalMinutes < 60) {
+    return minutesLabel ? `${totalMinutes} ${minutesLabel}` : `${totalMinutes}`;
+  }
+  return `${hourText}:${minuteText}`;
 };
 
 export const parseDateInput = (

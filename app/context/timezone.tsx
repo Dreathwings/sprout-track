@@ -7,7 +7,8 @@ import {
   getDateTimePreferences,
   formatDate as formatDateWithPreferences,
   formatTime as formatTimeWithPreferences,
-  formatDateTime as formatDateTimeWithPreferences
+  formatDateTime as formatDateTimeWithPreferences,
+  formatDuration as formatDurationWithPreferences
 } from '@/src/lib/date-time';
 
 /**
@@ -113,7 +114,7 @@ const TimezoneContext = createContext<TimezoneContextType | undefined>(undefined
  * Provider component for timezone context
  */
 export function TimezoneProvider({ children }: { children: ReactNode }) {
-  const { language } = useLocalization();
+  const { language, t } = useLocalization();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [userTimezone, setUserTimezone] = useState<string>('UTC');
   const [isDST, setIsDST] = useState<boolean>(false);
@@ -386,9 +387,10 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
    * Format a duration in minutes to a human-readable string (HH:MM)
    */
   const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours}:${mins.toString().padStart(2, '0')}`;
+    return formatDurationWithPreferences(minutes * 60000, dateTimePreferences, {
+      style: 'clock',
+      minuteLabel: t('min'),
+    });
   };
 
   /**
