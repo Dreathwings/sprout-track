@@ -1,6 +1,8 @@
 import { ActivityType } from './activity-tile.types';
 import { BathLogResponse, PumpLogResponse, MeasurementResponse, MilestoneResponse, MedicineLogResponse } from '@/app/api/types';
 import { useTimezone } from '@/app/context/timezone';
+import { useLocalization } from '@/src/context/localization';
+import { formatDuration as formatDurationWithPreferences, getDateTimePreferences } from '@/src/lib/date-time';
 
 /**
  * Gets the activity time from different activity types
@@ -42,6 +44,16 @@ export const getActivityVariant = (activity: ActivityType): 'sleep' | 'feed' | '
  */
 export const useActivityDescription = () => {
   const { formatDateTime, formatTime, formatDuration: formatDurationTime } = useTimezone();
+  const { language, t } = useLocalization();
+  const preferences = getDateTimePreferences(
+    typeof window !== 'undefined'
+      ? {
+          timeFormat: (localStorage.getItem('timeFormat') as '24h' | '12h' | null) ?? undefined,
+          dateFormat: (localStorage.getItem('dateFormat') as 'DD/MM/YYYY' | 'MM/DD/YYYY' | 'YYYY-MM-DD' | null) ?? undefined,
+        }
+      : undefined,
+    language
+  );
   
   /**
    * Formats duration in minutes to HH:MM format with parentheses
@@ -191,33 +203,30 @@ export const useActivityDescription = () => {
     };
     
     if (isPumpLog(activity)) {
-      const startTime = activity.startTime ? formatDateTime(activity.startTime) : '';
-      
-      let details = startTime;
-      
-      // Add total amount if available
-      if (activity.totalAmount) {
-        const amountStr = `${activity.totalAmount} ${activity.unitAbbr || 'oz'}`;
-        details += details ? ` - ${amountStr}` : amountStr;
-      } 
-      // Otherwise add left and right amounts if available
-      else if (activity.leftAmount || activity.rightAmount) {
-        const amounts = [];
-        if (activity.leftAmount) amounts.push(`L: ${activity.leftAmount}`);
-        if (activity.rightAmount) amounts.push(`R: ${activity.rightAmount}`);
-        
-        if (amounts.length > 0) {
-          const amountStr = `${amounts.join(', ')} ${activity.unitAbbr || 'oz'}`;
-          details += details ? ` - ${amountStr}` : amountStr;
-        }
+      let durationMinutes = 0;
+      if (activity.duration) {
+        durationMinutes = activity.duration;
+      } else if (activity.startTime && activity.endTime) {
+        const start = new Date(activity.startTime).getTime();
+        const end = new Date(activity.endTime).getTime();
+        durationMinutes = Math.floor((end - start) / 60000);
       }
-      
-      // Add notes if available
-      const notes = activity.notes ? ` - ${activity.notes}` : '';
-      
+
+      const endTimeLabel = activity.endTime
+        ? formatTime(activity.endTime)
+        : activity.startTime
+        ? formatTime(activity.startTime)
+        : '';
+      const durationLabel = durationMinutes > 0
+        ? formatDurationWithPreferences(durationMinutes * 60000, preferences, {
+            style: 'auto',
+            minuteLabel: t('min'),
+          })
+        : '';
+
       return {
-        type: 'Pump',
-        details: `${details}${notes}`
+        type: t('Pump'),
+        details: [endTimeLabel, durationLabel].filter(Boolean).join(' • ')
       };
     }
     
