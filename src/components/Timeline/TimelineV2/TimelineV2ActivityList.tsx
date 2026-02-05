@@ -7,6 +7,7 @@ import { useTheme } from '@/src/context/theme';
 import { Label } from '@/src/components/ui/label';
 import { useLocalization } from '@/src/context/localization';
 import { formatDate, formatDuration, formatTime as formatTimeDisplay, getDateTimePreferences } from '@/src/lib/date-time';
+import { PumpLogResponse } from '@/app/api/types';
 
 import '../timeline-activity-list.css';
 
@@ -30,6 +31,9 @@ const TimelineV2ActivityList = ({
       }),
     [settings]
   );
+
+  const isPumpActivity = (activity: ActivityType): activity is PumpLogResponse =>
+    'leftAmount' in activity || 'rightAmount' in activity;
 
   const { theme } = useTheme();
   
@@ -163,7 +167,7 @@ const TimelineV2ActivityList = ({
                           const activityTime = new Date(getActivityTime(activity));
                           let timeStr: string;
                           
-                          if ('leftAmount' in activity || 'rightAmount' in activity) {
+                          if (isPumpActivity(activity)) {
                             if (activity.endTime) {
                               const endTime = new Date(activity.endTime);
                               timeStr = formatTimeDisplay(endTime, dateTimePreferences);
@@ -259,7 +263,7 @@ const TimelineV2ActivityList = ({
                                 </Label>
                                 <div className="text-xs text-gray-600 event-details">
                                   {(() => {
-                                    if ('leftAmount' in activity || 'rightAmount' in activity) {
+                                    if (isPumpActivity(activity)) {
                                       let durationMinutes = 0;
                                       if (activity.duration) {
                                         durationMinutes = activity.duration;
@@ -398,7 +402,7 @@ const TimelineV2ActivityList = ({
                                       return details.join(' • ');
                                     }
                                     
-                                    if ('leftAmount' in activity || 'rightAmount' in activity) {
+                                    if (isPumpActivity(activity)) {
                                       return '';
                                     }
                                     

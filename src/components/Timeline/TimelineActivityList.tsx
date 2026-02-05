@@ -8,6 +8,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useTheme } from '@/src/context/theme';
 import { useLocalization } from '@/src/context/localization';
 import { formatDuration, formatTime as formatTimeDisplay, getDateTimePreferences } from '@/src/lib/date-time';
+import { PumpLogResponse } from '@/app/api/types';
 
 import './timeline-activity-list.css';
 
@@ -38,6 +39,9 @@ const TimelineActivityList = ({
       }),
     [settings]
   );
+
+  const isPumpActivity = (activity: ActivityType): activity is PumpLogResponse =>
+    'leftAmount' in activity || 'rightAmount' in activity;
 
   // Extract activeFilter from props if available
   const activeFilter = (onSwipeLeft as any)?.activeFilter as FilterType | undefined;
@@ -328,7 +332,7 @@ const TimelineActivityList = ({
                         const activityTime = new Date(getActivityTime(activity));
                         let timeStr: string;
                         
-                        if ('leftAmount' in activity || 'rightAmount' in activity) {
+                        if (isPumpActivity(activity)) {
                           if (activity.endTime) {
                             const endTime = new Date(activity.endTime);
                             timeStr = formatTimeDisplay(endTime, dateTimePreferences);
@@ -435,7 +439,7 @@ const TimelineActivityList = ({
                                       <p className="text-sm text-gray-900 timeline-activity-details truncate">
                                         {(() => {
                                           // Generate meaningful summaries for each activity type
-                                          if ('leftAmount' in activity || 'rightAmount' in activity) {
+                                          if (isPumpActivity(activity)) {
                                             let durationMinutes = 0;
                                             if (activity.duration) {
                                               durationMinutes = activity.duration;
