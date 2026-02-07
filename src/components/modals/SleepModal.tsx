@@ -7,6 +7,7 @@ import {
 } from '@/src/components/ui/dialog';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
+import { DateTimePicker } from '@/src/components/ui/date-time-picker';
 import {
   Select,
   SelectContent,
@@ -52,7 +53,7 @@ export default function SleepModal({
     quality: '' as SleepQuality | '',
   });
 
-  // Format date string to be compatible with datetime-local input
+  // Format date string for consistent local datetime storage
   const formatDateForInput = (dateStr: string) => {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
@@ -243,30 +244,20 @@ export default function SleepModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="form-label">{t('Start Time')}</label>
-              <Input
-                type="datetime-local"
-                value={formData.startTime}
-                onChange={(e) =>
-                  setFormData({ ...formData, startTime: e.target.value })
-                }
+              <DateTimePicker
+                value={formData.startTime ? new Date(formData.startTime) : null}
+                onChange={(date) => setFormData({ ...formData, startTime: formatDateForInput(date.toISOString()) })}
                 className="w-full"
-                required
-                tabIndex={-1}
-                disabled={isSleeping && !isEditMode} // Only disabled when ending sleep and not editing
+                disabled={isSleeping && !isEditMode}
               />
             </div>
             {(isSleeping || isEditMode) && (
               <div>
                 <label className="form-label">{t('End Time')}</label>
-                <Input
-                  type="datetime-local"
-                  value={formData.endTime || initialTime}
-                  onChange={(e) =>
-                    setFormData({ ...formData, endTime: e.target.value })
-                  }
+                <DateTimePicker
+                  value={formData.endTime ? new Date(formData.endTime) : new Date(initialTime)}
+                  onChange={(date) => setFormData({ ...formData, endTime: formatDateForInput(date.toISOString()) })}
                   className="w-full"
-                  required={isSleeping}
-                  tabIndex={-1}
                 />
               </div>
             )}

@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import './date-time-picker.css';
 import { Calendar } from '@/src/components/ui/calendar';
-import { TimeEntry } from '@/src/components/ui/time-entry';
+import { TimePicker } from '@/src/components/ui/time-picker';
 import { cn } from '@/src/lib/utils';
 import { isValid } from 'date-fns';
 import { CalendarIcon, Clock } from 'lucide-react';
@@ -14,6 +14,7 @@ import {
   PopoverTrigger,
 } from '@/src/components/ui/popover';
 import { useTimezone } from '@/app/context/timezone';
+import { useLocalization } from '@/src/context/localization';
 
 // Import types and styles
 import { DateTimePickerProps } from './date-time-picker.types';
@@ -23,19 +24,18 @@ import {
   dateTimePickerPopoverContentStyles,
   dateTimePickerCalendarContainerStyles,
   dateTimePickerTimeContainerStyles,
-  dateTimePickerFooterStyles, // Keep footer style for potential future use or spacing
 } from './date-time-picker.styles';
 
 /**
  * DateTimePicker Component
  * 
- * A component that combines the Calendar for date selection and TimeEntry for time selection,
+ * A component that combines the Calendar for date selection and TimePicker for time selection,
  * using two separate buttons with popovers.
  * 
  * Features:
  * - Two buttons for date and time selection
  * - Calendar component for date selection in a popover
- * - TimeEntry component for time selection in a popover with a done button
+ * - TimePicker component for time selection in a popover with a done button
  * - Fixed dimensions for both popovers (360px height, 350px width)
  * - Bottom-aware positioning with margin
  */
@@ -44,9 +44,11 @@ export function DateTimePicker({
   onChange,
   className,
   disabled = false,
-  placeholder = "Select date and time...",
+  placeholder,
 }: DateTimePickerProps) {
-  const { formatDateOnly, formatTime } = useTimezone();
+  void placeholder;
+  const { t } = useLocalization();
+  const { formatDateOnly, formatTime, timeFormat } = useTimezone();
   // Allow for null date value
   const [date, setDate] = useState<Date | null>(() => {
     // Check if value is a valid Date
@@ -99,7 +101,7 @@ export function DateTimePicker({
     setDateOpen(false);
   };
   
-  // Handle time change from TimeEntry
+  // Handle time change from TimePicker
   const handleTimeChange = (newDate: Date) => {
     setDate(newDate);
     onChange(newDate);
@@ -107,14 +109,14 @@ export function DateTimePicker({
   
   // Format the date for display
   const formatDate = (date: Date | null): string => {
-    if (!date || !isValid(date)) return 'Select date';
-    return formatDateOnly(date.toISOString()) || 'Select date';
+    if (!date || !isValid(date)) return t('Select date');
+    return formatDateOnly(date.toISOString()) || t('Select date');
   };
   
   // Format the time for display
   const formatTimeLabel = (date: Date | null): string => {
-    if (!date || !isValid(date)) return 'Select time';
-    return formatTime(date.toISOString()) || 'Select time';
+    if (!date || !isValid(date)) return t('Select time');
+    return formatTime(date.toISOString()) || t('Select time');
   };
   
   // The time popover will now close when clicking outside, removing the need for a "Done" button.
@@ -169,10 +171,12 @@ export function DateTimePicker({
           sideOffset={4}
         >
           <div className={dateTimePickerTimeContainerStyles}>
-            <TimeEntry
+            <TimePicker
               value={date}
               onChange={handleTimeChange}
               disabled={disabled}
+              format={timeFormat}
+              ariaLabel={t('Select time')}
               className="mx-auto w-full"
             />
           </div>

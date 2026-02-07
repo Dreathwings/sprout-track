@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, Rea
 import { useLocalization } from '@/src/context/localization';
 import {
   DateTimePreferences,
+  TimeFormat,
   getDateTimePreferences,
   formatDate as formatDateWithPreferences,
   formatTime as formatTimeWithPreferences,
@@ -30,6 +31,8 @@ interface TimezoneContextType {
    */
   isDST: boolean;
   
+  timeFormat: TimeFormat;
+
   /**
    * Format an ISO date string in the user's timezone with specified format options
    */
@@ -555,6 +558,7 @@ export function TimezoneProvider({ children }: { children: ReactNode }) {
       isLoading,
       userTimezone,
       isDST,
+      timeFormat: dateTimePreferences.timeFormat,
       formatDate,
       formatTime,
       formatDateOnly,

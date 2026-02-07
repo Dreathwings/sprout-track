@@ -170,3 +170,49 @@ export const parseDateInput = (
   const parsed = new Date(year, month - 1, day);
   return isNaN(parsed.getTime()) ? null : parsed;
 };
+
+export interface ParsedTimeInput {
+  hours: number;
+  minutes: number;
+}
+
+export const parseTimeInput = (
+  value: string | null | undefined,
+  preferences?: DateTimePreferences | null,
+  options?: DateTimeFormatOptions
+): ParsedTimeInput | null => {
+  if (!value) return null;
+
+  const trimmedValue = value.trim();
+  if (!trimmedValue) return null;
+
+  const { timeFormat } = getDateTimePreferences(preferences, options?.language);
+
+  const twentyFourHourMatch = /^(\d{1,2}):(\d{2})$/.exec(trimmedValue);
+  if (twentyFourHourMatch) {
+    const hours = Number(twentyFourHourMatch[1]);
+    const minutes = Number(twentyFourHourMatch[2]);
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+    return { hours, minutes };
+  }
+
+  if (timeFormat === '24h') return null;
+
+  const match = /^(\d{1,2}):(\d{2})\s*([AaPp][Mm])$/.exec(trimmedValue);
+  if (!match) return null;
+
+  const hours12 = Number(match[1]);
+  const minutes = Number(match[2]);
+  const period = match[3].toUpperCase();
+
+  if (hours12 < 1 || hours12 > 12 || minutes < 0 || minutes > 59) return null;
+
+  const normalizedHours = period === 'PM'
+    ? (hours12 === 12 ? 12 : hours12 + 12)
+    : (hours12 === 12 ? 0 : hours12);
+
+  return {
+    hours: normalizedHours,
+    minutes,
+  };
+};

@@ -493,3 +493,37 @@ The `./scripts/env-update.sh` script automatically manages environment variables
   - **Expected:** The form shows an error and does not submit.
 - **Duration causes start time to cross midnight.**
   - **Expected:** The calculated `startTime` correctly shifts to the previous day without errors.
+
+## Testing – TimePicker Migration
+
+### Impacted screens/components
+- Feeding form (`FeedForm`) and legacy feeding modal (`FeedModal`).
+- Pumping form (`PumpForm`) through shared `DateTimePicker`.
+- Sleep form (`SleepForm`) and legacy sleep modal (`SleepModal`).
+- Diaper and note legacy modals (`DiaperModal`, `NoteModal`) through shared `DateTimePicker`.
+- Any other module using `DateTimePicker`, because time entry is now centralized via `TimePicker`.
+
+### Test protocol
+1. **Test with 24h format**
+   - Set preferences to 24h.
+   - Open each impacted screen and select a time.
+   - Expected: input accepts time correctly and displays a 24h value.
+2. **Test with 12h format**
+   - Set preferences to 12h.
+   - Open each impacted screen and select a time.
+   - Expected: time remains editable and the UI displays 12h formatted preview where applicable.
+3. **Test mobile responsive behavior**
+   - Validate on narrow viewport / mobile browser.
+   - Expected: native time control remains usable and no overlap/cutoff occurs.
+4. **Validate backend storage consistency**
+   - Create/update records from impacted screens.
+   - Expected: persisted timestamps remain consistent with previous behavior (timezone conversion and DB payloads unchanged).
+5. **Regression on existing records**
+   - Open and edit older entries created before migration.
+   - Expected: records load correctly, time can be adjusted, and save succeeds.
+
+### Edge cases and expected results
+- **Midnight (`00:00` / `12:00 AM`)**: saved value corresponds to start of day.
+- **Noon (`12:00 PM`)**: saved value corresponds to midday without date shift.
+- **11:59 PM → next day updates**: date/time combinations remain coherent when changing to adjacent day boundaries.
+- **Day change after editing date then time**: selected date is preserved while time updates only hour/minute components.

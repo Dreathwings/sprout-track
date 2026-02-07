@@ -7,6 +7,7 @@ import {
 } from '@/src/components/ui/dialog';
 import { Button } from '@/src/components/ui/button';
 import { Input } from '@/src/components/ui/input';
+import { DateTimePicker } from '@/src/components/ui/date-time-picker';
 import {
   Select,
   SelectContent,
@@ -67,7 +68,7 @@ export default function FeedModal({
     }
   };
 
-  // Format date string to be compatible with datetime-local input
+  // Format date string for consistent local datetime storage
   const formatDateForInput = (dateStr: string) => {
     const date = new Date(dateStr);
     if (isNaN(date.getTime())) return '';
@@ -207,15 +208,10 @@ export default function FeedModal({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="form-label">{t('Time')}</label>
-              <Input
-                type="datetime-local"
-                value={formData.time}
-                onChange={(e) =>
-                  setFormData({ ...formData, time: e.target.value })
-                }
+              <DateTimePicker
+                value={formData.time ? new Date(formData.time) : null}
+                onChange={(date) => setFormData({ ...formData, time: formatDateForInput(date.toISOString()) })}
                 className="w-full"
-                required
-                tabIndex={-1}
               />
             </div>
             <div>
