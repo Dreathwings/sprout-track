@@ -142,6 +142,48 @@ export const formatDuration = (
   return `${hours}:${minutes.toString().padStart(2, '0')}`;
 };
 
+
+export const parseTimeInput = (
+  value: string | null | undefined,
+  preferences?: DateTimePreferences | null,
+): { hours: number; minutes: number } | null => {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const { timeFormat } = getDateTimePreferences(preferences);
+
+  const twentyFourHourMatch = trimmed.match(/^(\d{1,2}):(\d{2})$/);
+  if (twentyFourHourMatch) {
+    const hours = Number(twentyFourHourMatch[1]);
+    const minutes = Number(twentyFourHourMatch[2]);
+
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) return null;
+
+    return { hours, minutes };
+  }
+
+  if (timeFormat !== '12h') return null;
+
+  const twelveHourMatch = trimmed.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+  if (!twelveHourMatch) return null;
+
+  const twelveHour = Number(twelveHourMatch[1]);
+  const minutes = Number(twelveHourMatch[2]);
+  const period = twelveHourMatch[3].toUpperCase();
+
+  if (Number.isNaN(twelveHour) || Number.isNaN(minutes)) return null;
+  if (twelveHour < 1 || twelveHour > 12 || minutes < 0 || minutes > 59) return null;
+
+  const hours = period === 'PM'
+    ? (twelveHour === 12 ? 12 : twelveHour + 12)
+    : (twelveHour === 12 ? 0 : twelveHour);
+
+  return { hours, minutes };
+};
+
 export const parseDateInput = (
   value: string | null | undefined,
   preferences?: DateTimePreferences | null,

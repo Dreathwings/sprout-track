@@ -1331,5 +1331,6 @@
   "Error: Failed to download data": "Error: Failed to download data",
   "Error: Failed to renew subscription": "Error: Failed to renew subscription",
   "of": "of",
-  "Total": "Total"
+  "Total": "Total",
+  "Select time": "Sélectionnez l'heure"
 }

@@ -35,6 +35,16 @@ export interface TimeEntryProps {
    * Optional maximum time allowed
    */
   maxTime?: Date;
+
+  /**
+   * Time display format
+   */
+  format?: '24h' | '12h';
+
+  /**
+   * Accessible label for the time trigger
+   */
+  ariaLabel?: string;
 }
 
 /**

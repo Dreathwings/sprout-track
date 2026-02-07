@@ -493,3 +493,41 @@ The `./scripts/env-update.sh` script automatically manages environment variables
   - **Expected:** The form shows an error and does not submit.
 - **Duration causes start time to cross midnight.**
   - **Expected:** The calculated `startTime` correctly shifts to the previous day without errors.
+
+## Testing – TimePicker Dropdown Migration
+
+### Impacted screens/modules
+
+- Feed form (Alimentation)
+- Pump form (Tire-lait)
+- Sleep form (Sommeil)
+- Other forms using the shared `DateTimePicker` + `TimeEntry` stack: Bath, Diaper, Measurement, Medicine, Milestone, Note, Calendar Event
+
+### Manual test protocol
+
+1. **Tester en format 24h.**
+   - **Steps:** Set user preferences to 24h format, open each impacted form, open the time dropdown, select a time, save.
+   - **Expected:** Dropdown options and selected value are displayed in 24h format. Saved entries preserve the selected hour/minute.
+
+2. **Tester en format 12h.**
+   - **Steps:** Set user preferences to 12h format, repeat the same workflow.
+   - **Expected:** Dropdown options and selected value are displayed with AM/PM. Saved entries preserve the selected hour/minute.
+
+3. **Tester la navigation clavier (accessibilité).**
+   - **Steps:** Focus the time trigger with `Tab`, open with `Enter`/`Space`, navigate options with arrow keys, validate with `Enter`, close with `Esc`.
+   - **Expected:** Full keyboard flow works without mouse, focus is visible, and selected value updates correctly.
+
+4. **Tester responsive/mobile.**
+   - **Steps:** Validate on mobile viewport width and desktop width; open dropdown and select values.
+   - **Expected:** Trigger remains tappable, dropdown is scrollable, and no layout overlap blocks selection.
+
+5. **Vérifier le stockage backend.**
+   - **Steps:** Save entries from each impacted form and inspect timeline/API payload or DB records.
+   - **Expected:** Stored date-time values remain normalized (same timezone/storage behavior as before migration).
+
+6. **Tester les cas limites (minuit, 12:00 AM, 12:00 PM).**
+   - **Steps:** Select midnight/noon values in both 24h and 12h preference modes and save.
+   - **Expected:**
+     - 24h mode: `00:00` and `12:00` map correctly.
+     - 12h mode: `12:00 AM` maps to midnight and `12:00 PM` maps to noon.
+     - Persisted values and rendered timeline labels stay consistent.

@@ -1,12 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import './date-time-picker.css';
 import { Calendar } from '@/src/components/ui/calendar';
 import { TimeEntry } from '@/src/components/ui/time-entry';
 import { cn } from '@/src/lib/utils';
 import { isValid } from 'date-fns';
-import { CalendarIcon, Clock } from 'lucide-react';
+import { CalendarIcon } from 'lucide-react';
 import { Button } from '@/src/components/ui/button';
 import {
   Popover,
@@ -14,6 +14,8 @@ import {
   PopoverTrigger,
 } from '@/src/components/ui/popover';
 import { useTimezone } from '@/app/context/timezone';
+import { useLocalization } from '@/src/context/localization';
+import { TimeFormat } from '@/src/lib/date-time';
 
 // Import types and styles
 import { DateTimePickerProps } from './date-time-picker.types';
@@ -22,8 +24,6 @@ import {
   dateTimePickerButtonStyles,
   dateTimePickerPopoverContentStyles,
   dateTimePickerCalendarContainerStyles,
-  dateTimePickerTimeContainerStyles,
-  dateTimePickerFooterStyles, // Keep footer style for potential future use or spacing
 } from './date-time-picker.styles';
 
 /**
@@ -44,9 +44,9 @@ export function DateTimePicker({
   onChange,
   className,
   disabled = false,
-  placeholder = "Select date and time...",
 }: DateTimePickerProps) {
-  const { formatDateOnly, formatTime } = useTimezone();
+  const { formatDateOnly } = useTimezone();
+  const { t } = useLocalization();
   // Allow for null date value
   const [date, setDate] = useState<Date | null>(() => {
     // Check if value is a valid Date
@@ -63,7 +63,6 @@ export function DateTimePicker({
   
   // State for popovers
   const [dateOpen, setDateOpen] = useState(false);
-  const [timeOpen, setTimeOpen] = useState(false);
   
   // Update the date when the value prop changes
   useEffect(() => {
@@ -105,19 +104,14 @@ export function DateTimePicker({
     onChange(newDate);
   };
   
-  // Format the date for display
   const formatDate = (date: Date | null): string => {
-    if (!date || !isValid(date)) return 'Select date';
-    return formatDateOnly(date.toISOString()) || 'Select date';
+    if (!date || !isValid(date)) return t('Select date');
+    return formatDateOnly(date.toISOString()) || t('Select date');
   };
-  
-  // Format the time for display
-  const formatTimeLabel = (date: Date | null): string => {
-    if (!date || !isValid(date)) return 'Select time';
-    return formatTime(date.toISOString()) || 'Select time';
-  };
-  
-  // The time popover will now close when clicking outside, removing the need for a "Done" button.
+
+  const timeFormatPreference = (typeof window !== 'undefined' && localStorage.getItem('timeFormat') === '12h')
+    ? '12h'
+    : '24h';
   
   return (
     <div className={cn(dateTimePickerContainerStyles, "date-time-picker-container", className)}>
@@ -151,34 +145,14 @@ export function DateTimePicker({
         </PopoverContent>
       </Popover>
       
-      {/* Time Button with Popover */}
-      <Popover open={timeOpen} onOpenChange={setTimeOpen}>
-        <PopoverTrigger asChild>
-          <Button
-            variant="outline"
-            className={cn(dateTimePickerButtonStyles, "date-time-picker-button")}
-            disabled={disabled}
-          >
-            <Clock className="h-4 w-4 date-time-picker-clock-icon" />
-            <span>{formatTimeLabel(date)}</span>
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent 
-          className={cn(dateTimePickerPopoverContentStyles, "date-time-picker-popover")}
-          align="start"
-          sideOffset={4}
-        >
-          <div className={dateTimePickerTimeContainerStyles}>
-            <TimeEntry
-              value={date}
-              onChange={handleTimeChange}
-              disabled={disabled}
-              className="mx-auto w-full"
-            />
-          </div>
-          {/* Removed Footer with done button */}
-        </PopoverContent>
-      </Popover>
+      <TimeEntry
+        value={date}
+        onChange={handleTimeChange}
+        disabled={disabled}
+        className="w-full"
+        format={timeFormatPreference as TimeFormat}
+        ariaLabel={t('Select time')}
+      />
     </div>
   );
 }
