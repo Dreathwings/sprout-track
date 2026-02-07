@@ -52,7 +52,7 @@ function PaymentSuccessContent() {
   useEffect(() => {
     const verifySession = async () => {
       if (!sessionId) {
-        setVerificationError('No session ID provided');
+        setVerificationError(t('No session ID provided'));
         setVerifying(false);
         return;
       }
@@ -71,11 +71,11 @@ function PaymentSuccessContent() {
         const data = await response.json();
 
         if (!data.success) {
-          setVerificationError(data.error || 'Failed to verify payment');
+          setVerificationError(data.error || t('Failed to verify payment'));
         }
       } catch (error) {
         console.error('Error verifying session:', error);
-        setVerificationError('Failed to verify payment');
+        setVerificationError(t('Failed to verify payment'));
       } finally {
         setVerifying(false);
       }
@@ -182,7 +182,7 @@ function PaymentSuccessContent() {
                   </div>
                 </div>
                 <p className="text-teal-700 font-medium mb-3">
-                  {t('Redirecting to home in')} {countdown} second{countdown !== 1 ? 's' : ''}...
+                  {t('Redirecting to home in')} {countdown} {countdown !== 1 ? t('seconds') : t('second')}...
                 </p>
                 <div className="w-full bg-teal-200 rounded-full h-3">
                   <div
