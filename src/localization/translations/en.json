@@ -1336,5 +1336,12 @@
   "Period": "Period",
   "Select hour": "Select hour",
   "Select minute": "Select minute",
-  "Select period": "Select period"
+  "Select period": "Select period",
+  "No active feeding session": "No active feeding session",
+  "Start Left": "Start Left",
+  "Start Right": "Start Right",
+  "Active Feeding Session": "Active Feeding Session",
+  "Active side": "Active side",
+  "Switch Side": "Switch Side",
+  "Resume": "Resume"
 }

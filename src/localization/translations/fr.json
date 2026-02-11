@@ -1336,5 +1336,12 @@
   "Period": "Période",
   "Select hour": "Sélectionner l'heure",
   "Select minute": "Sélectionner les minutes",
-  "Select period": "Sélectionner AM/PM"
+  "Select period": "Sélectionner AM/PM",
+  "No active feeding session": "Aucune session d'alimentation active",
+  "Start Left": "Démarrer gauche",
+  "Start Right": "Démarrer droite",
+  "Active Feeding Session": "Session d'alimentation active",
+  "Active side": "Côté actif",
+  "Switch Side": "Changer de côté",
+  "Resume": "Reprendre"
 }

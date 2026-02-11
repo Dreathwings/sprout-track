@@ -540,3 +540,41 @@ The `./scripts/env-update.sh` script automatically manages environment variables
 7. **Tester cas limites horaires**
    - **Étapes :** Valider `00:00`, `12:00 AM`, `12:00 PM`, `23:59`.
    - **Résultat attendu :** Aucune erreur de parsing ni inversion AM/PM, affichage cohérent avec les préférences utilisateur.
+
+## Testing – Advanced Feeding Session
+
+### Manual test protocol
+
+1. **Test note during active session**
+   - Open the feeding page and start a new active feeding session.
+   - Type text in the feeding note field.
+   - Navigate to another page/tab in the app.
+   - Return to feeding and confirm the note is still present.
+
+2. **Test pause flow**
+   - Start a session on the left side.
+   - Wait a few seconds, then click **Pause**.
+   - Confirm both counters stop changing.
+   - Click **Resume** and verify counters continue.
+
+3. **Test side switch flow**
+   - Start on left side and let timer run.
+   - Click **Switch Side**.
+   - Confirm left duration is accumulated and right becomes active.
+
+4. **Test multi-user synchronization**
+   - Open app in two browsers/devices with users in the same family.
+   - Start session in browser A.
+   - In browser B, wait for polling refresh and confirm same state.
+   - Switch side and pause in A.
+   - Confirm synchronized state in B (active side, pause state, durations, note).
+
+5. **Test refresh resilience**
+   - Start a session and wait a few seconds.
+   - Refresh the page.
+   - Confirm active session panel is restored with up-to-date durations.
+
+6. **Test stop flow**
+   - Stop an active session.
+   - Confirm session panel resets to no-active-session state.
+   - Confirm one or two breast feed log entries are created (left/right durations and note).

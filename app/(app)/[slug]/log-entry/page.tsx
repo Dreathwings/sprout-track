@@ -24,6 +24,7 @@ import PumpForm from '@/src/components/forms/PumpForm';
 import MeasurementForm from '@/src/components/forms/MeasurementForm';
 import MilestoneForm from '@/src/components/forms/MilestoneForm';
 import MedicineForm from '@/src/components/forms/MedicineForm';
+import FeedingActivePanel from '@/src/components/feeding/FeedingActivePanel';
 import { useParams } from 'next/navigation';
 import { NoBabySelected } from '@/src/components/ui/no-baby-selected';
 
@@ -357,6 +358,9 @@ function HomeContent(): React.ReactElement {
 
   return (
     <div className="relative isolate">
+      {/* Feeding live panel (Alimentation) */}
+      <FeedingActivePanel babyId={selectedBaby?.id} onStopped={() => refreshActivities(selectedBaby?.id, selectedTimelineDate || undefined)} />
+
       {/* Activity Tile Group */}
       {selectedBaby?.id && (
         <ActivityTileGroup
