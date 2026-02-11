@@ -1336,5 +1336,14 @@
   "Period": "Période",
   "Select hour": "Sélectionner l'heure",
   "Select minute": "Sélectionner les minutes",
-  "Select period": "Sélectionner AM/PM"
+  "Select period": "Sélectionner AM/PM",
+  "Feeding in progress": "Tétée en cours",
+  "Elapsed": "Écoulé",
+  "Stop Feeding": "Terminer la tétée",
+  "Feeding session completed.": "Session de tétée terminée.",
+  "Failed to stop feeding session.": "Échec de l’arrêt de la session de tétée.",
+  "Failed to start feeding session.": "Échec du démarrage de la session de tétée.",
+  "Background feeding session started.": "Session de tétée en arrière-plan démarrée.",
+  "Start Background": "Démarrer en arrière-plan",
+  "A feeding session is already active for this child.": "Une session de tétée est déjà active pour cet enfant."
 }

@@ -18,6 +18,7 @@ interface BreastFeedFormProps {
   loading: boolean;
   onSideChange: (side: BreastSide | '') => void;
   onTimerStart: (breast: 'LEFT' | 'RIGHT') => void;
+  onBackgroundStart?: (breast: 'LEFT' | 'RIGHT') => void;
   onTimerStop: () => void;
   onDurationChange: (breast: 'LEFT' | 'RIGHT', seconds: number) => void;
   isEditing?: boolean; // New prop to indicate if we're editing an existing record
@@ -58,6 +59,7 @@ export default function BreastFeedForm({
   onSideChange,
   onTimerStart,
   onTimerStop,
+  onBackgroundStart,
   onDurationChange,
   isEditing = false, // Default to false
   notes = '',
@@ -323,6 +325,20 @@ export default function BreastFeedForm({
                 t('Pause') : t('Start')}
             </Button>
           </div>
+          {onNotesChange && (
+            <div className="w-full mt-4">
+              <label className="form-label">{t('Notes')}</label>
+              <Textarea
+                id="notes"
+                name="notes"
+                placeholder={t("Enter any notes about the feeding")}
+                value={notes}
+                onChange={(e) => onNotesChange(e.target.value)}
+                rows={3}
+                disabled={loading}
+              />
+            </div>
+          )}
         </div>
       </div>
     );
@@ -358,7 +374,9 @@ export default function BreastFeedForm({
               size="sm"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
-                if (isTimerRunning && activeBreast === 'LEFT') {
+                if (onBackgroundStart) {
+                  onBackgroundStart('LEFT');
+                } else if (isTimerRunning && activeBreast === 'LEFT') {
                   handleTimerStop();
                 } else {
                   handleTimerStop(); // Stop any existing timer
@@ -369,8 +387,8 @@ export default function BreastFeedForm({
               disabled={loading || isEditingLeft}
               className="w-full"
             >
-              {isTimerRunning && activeBreast === 'LEFT' ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
-              {isTimerRunning && activeBreast === 'LEFT' ? t('Pause') : t('Start')}
+              {onBackgroundStart ? <Play className="h-4 w-4 mr-1" /> : isTimerRunning && activeBreast === 'LEFT' ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              {onBackgroundStart ? t('Start Background') : isTimerRunning && activeBreast === 'LEFT' ? t('Pause') : t('Start')}
             </Button>
           </div>
         </div>
@@ -405,7 +423,9 @@ export default function BreastFeedForm({
               size="sm"
               onClick={(e: React.MouseEvent) => {
                 e.preventDefault();
-                if (isTimerRunning && activeBreast === 'RIGHT') {
+                if (onBackgroundStart) {
+                  onBackgroundStart('RIGHT');
+                } else if (isTimerRunning && activeBreast === 'RIGHT') {
                   handleTimerStop();
                 } else {
                   handleTimerStop(); // Stop any existing timer
@@ -416,8 +436,8 @@ export default function BreastFeedForm({
               disabled={loading || isEditingRight}
               className="w-full"
             >
-              {isTimerRunning && activeBreast === 'RIGHT' ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
-              {isTimerRunning && activeBreast === 'RIGHT' ? t('Pause') : t('Start')}
+              {onBackgroundStart ? <Play className="h-4 w-4 mr-1" /> : isTimerRunning && activeBreast === 'RIGHT' ? <Pause className="h-4 w-4 mr-1" /> : <Play className="h-4 w-4 mr-1" />}
+              {onBackgroundStart ? t('Start Background') : isTimerRunning && activeBreast === 'RIGHT' ? t('Pause') : t('Start')}
             </Button>
           </div>
         </div>

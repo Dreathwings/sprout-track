@@ -4,7 +4,6 @@ import React, { useState, useEffect, useRef } from 'react';
 import { FeedType, BreastSide } from '@prisma/client';
 import { FeedLogResponse } from '@/app/api/types';
 import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
 import { DateTimePicker } from '@/src/components/ui/date-time-picker';
 import {
   FormPage, 
@@ -13,7 +12,6 @@ import {
 } from '@/src/components/ui/form-page';
 import { Check } from 'lucide-react';
 import { useTimezone } from '@/app/context/timezone';
-import { useTheme } from '@/src/context/theme';
 import { useToast } from '@/src/components/ui/toast';
 import { handleExpirationError } from '@/src/lib/expiration-error-handler';
 import './feed-form.css';
@@ -42,8 +40,7 @@ export default function FeedForm({
   onSuccess,
 }: FeedFormProps) {
   const { t } = useLocalization();
-  const { formatDate, toUTCString } = useTimezone();
-  const { theme } = useTheme();
+  const { toUTCString } = useTimezone();
   const { showToast } = useToast();
   
   const [selectedDateTime, setSelectedDateTime] = useState<Date>(() => {
@@ -627,20 +624,52 @@ export default function FeedForm({
       activeBreast: ''
     }));
   };
-  
-  // Format time as hh:mm:ss
-  const formatTime = (seconds: number) => {
-    const hours = Math.floor(seconds / 3600);
-    const minutes = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    
-    return [
-      hours.toString().padStart(2, '0'),
-      minutes.toString().padStart(2, '0'),
-      secs.toString().padStart(2, '0')
-    ].join(':');
+
+
+  const handleStartBackgroundSession = async (breast: 'LEFT' | 'RIGHT') => {
+    if (!babyId) return;
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/startSession', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+        body: JSON.stringify({
+          babyId,
+          side: breast,
+        }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || t('Failed to start feeding session.'));
+      }
+
+      showToast({
+        variant: 'success',
+        title: t('Success'),
+        message: t('Background feeding session started.'),
+        duration: 5000,
+      });
+
+      onClose();
+      onSuccess?.();
+      window.dispatchEvent(new CustomEvent('feedingSessionStarted'));
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t('Failed to start feeding session.');
+      showToast({
+        variant: 'error',
+        title: t('Error'),
+        message: t(errorMessage),
+        duration: 5000,
+      });
+    }
   };
   
+
   // Enhanced close handler that resets form state
   const handleClose = () => {
     // Stop any running timer
@@ -796,6 +825,7 @@ export default function FeedForm({
                 onSideChange={(side) => setFormData({ ...formData, side })}
                 onTimerStart={startTimer}
                 onTimerStop={stopTimer}
+                onBackgroundStart={!activity ? handleStartBackgroundSession : undefined}
                 onDurationChange={(breast, seconds) => {
                   if (breast === 'LEFT') {
                     setFormData(prev => ({ ...prev, leftDuration: seconds }));

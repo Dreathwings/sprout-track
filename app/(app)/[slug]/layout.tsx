@@ -28,6 +28,7 @@ import AccountManager from '@/src/components/account-manager';
 import dynamic from 'next/dynamic';
 import { Loader2 } from 'lucide-react';
 import AccountExpirationBanner from '@/src/components/ui/account-expiration-banner';
+import { ActiveFeedingBanner } from '@/src/components/ui/ActiveFeedingBanner';
 
 // Lazy load PaymentModal to prevent Stripe initialization in self-hosted mode
 const PaymentModal = dynamic(
@@ -755,6 +756,7 @@ function AppContent({ children }: { children: React.ReactNode }) {
             
             {/* Account Expiration Banner - shows for both account users and caretakers */}
             <AccountExpirationBanner isAccountAuth={isAccountAuth} />
+            <ActiveFeedingBanner />
             
             <main className="flex-1 relative z-0">
               {showSetup ? (

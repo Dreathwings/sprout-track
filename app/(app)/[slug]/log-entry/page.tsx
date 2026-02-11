@@ -273,6 +273,23 @@ function HomeContent(): React.ReactElement {
     initializeData();
   }, [selectedBaby, refreshActivities, checkSleepStatus]);
 
+
+  useEffect(() => {
+    const handleSessionUpdate = () => {
+      if (selectedBaby?.id) {
+        refreshActivities(selectedBaby.id);
+      }
+    };
+
+    window.addEventListener('feedingSessionStarted', handleSessionUpdate);
+    window.addEventListener('feedingSessionStopped', handleSessionUpdate);
+
+    return () => {
+      window.removeEventListener('feedingSessionStarted', handleSessionUpdate);
+      window.removeEventListener('feedingSessionStopped', handleSessionUpdate);
+    };
+  }, [selectedBaby?.id, refreshActivities]);
+
   // Handle sleep status changes
   useEffect(() => {
     if (!selectedBaby?.id) return;

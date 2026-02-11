@@ -1336,5 +1336,14 @@
   "Period": "Period",
   "Select hour": "Select hour",
   "Select minute": "Select minute",
-  "Select period": "Select period"
+  "Select period": "Select period",
+  "Feeding in progress": "Feeding in progress",
+  "Elapsed": "Elapsed",
+  "Stop Feeding": "Stop Feeding",
+  "Feeding session completed.": "Feeding session completed.",
+  "Failed to stop feeding session.": "Failed to stop feeding session.",
+  "Failed to start feeding session.": "Failed to start feeding session.",
+  "Background feeding session started.": "Background feeding session started.",
+  "Start Background": "Start Background",
+  "A feeding session is already active for this child.": "A feeding session is already active for this child."
 }

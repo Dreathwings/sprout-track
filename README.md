@@ -540,3 +540,36 @@ The `./scripts/env-update.sh` script automatically manages environment variables
 7. **Tester cas limites horaires**
    - **Étapes :** Valider `00:00`, `12:00 AM`, `12:00 PM`, `23:59`.
    - **Résultat attendu :** Aucune erreur de parsing ni inversion AM/PM, affichage cohérent avec les préférences utilisateur.
+
+## Testing – Feeding Background Session
+
+### 1) Test note on edit
+1. Open **Log Entry** and edit an existing feeding record.
+2. Add or update the **Notes** field.
+3. Save and confirm the note appears in the timeline/details view.
+4. Confirm DB persistence with a query against `FeedLog.notes` for the updated record.
+
+### 2) Test background feeding timer
+1. Open feeding form and select **Breast**.
+2. Start a background session (`Start Background`).
+3. Confirm the global active feeding banner appears.
+4. Navigate to other pages (Calendar, Full Log, Reports).
+5. Verify elapsed time continues increasing.
+
+### 3) Test refresh recovery
+1. Start a background feeding session.
+2. Refresh the browser while session is active.
+3. Confirm active feeding banner restores automatically and elapsed time remains coherent.
+
+### 4) Test multi-user synchronization
+1. Open two browsers/sessions for the same family and same baby.
+2. Start feeding session in browser A.
+3. Confirm browser B displays active banner after polling refresh.
+4. Stop feeding session in browser B.
+5. Confirm banner disappears in browser A after polling/refresh and feed entry is created once.
+
+### 5) Edge cases
+1. Attempt to start a second session while one is active for the same child.
+2. Confirm translated conflict error message appears.
+3. Simulate temporary offline/failed network and ensure banner recovers state once online.
+4. Keep a session running for >1h and verify elapsed time format and stop behavior.
