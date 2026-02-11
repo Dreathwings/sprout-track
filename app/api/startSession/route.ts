@@ -16,7 +16,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
       return NextResponse.json({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
-    const body: { babyId?: string; side?: BreastSide } = await req.json();
+    const body: { babyId?: string; side?: BreastSide; notes?: string } = await req.json();
 
     if (!body.babyId) {
       return NextResponse.json({ success: false, error: 'Baby ID is required.' }, { status: 400 });
@@ -47,6 +47,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         startedAt: new Date(),
         status: 'ACTIVE',
         side: body.side,
+        notes: body.notes && body.notes.trim() ? body.notes : null,
       },
     });
 
@@ -57,6 +58,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
         babyId: session.babyId,
         startedAt: session.startedAt.toISOString(),
         side: session.side,
+        notes: session.notes,
       },
     });
   } catch (error) {

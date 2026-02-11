@@ -50,7 +50,7 @@ async function handlePost(req: NextRequest, authContext: AuthResult) {
           feedDuration: durationInSeconds,
           amount: durationInSeconds / 60,
           time: stoppedAt,
-          notes: body.notes && body.notes.trim() ? body.notes : null,
+          notes: body.notes && body.notes.trim() ? body.notes : session.notes,
         },
       });
 

@@ -367,6 +367,7 @@ model FeedingSession {
   startedAt   DateTime
   status      String    @default("ACTIVE")
   side        BreastSide?
+  notes       String?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

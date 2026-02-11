@@ -79,8 +79,10 @@ export default function FeedForm({
     defaultBottleUnit: 'OZ',
     defaultSolidsUnit: 'TBSP',
   });
-  const [activeSession, setActiveSession] = useState<{ id: string; startedAt: string; side: 'LEFT' | 'RIGHT' | null } | null>(null);
+  const [activeSession, setActiveSession] = useState<{ id: string; startedAt: string; side: 'LEFT' | 'RIGHT' | null; notes?: string | null } | null>(null);
   const [sessionNow, setSessionNow] = useState(Date.now());
+  const activeSessionIdRef = useRef<string | null>(null);
+  const noteSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const formatDuration = (seconds: number) => {
     const hours = Math.floor(seconds / 3600);
@@ -367,6 +369,77 @@ export default function FeedForm({
       clearInterval(tick);
     };
   }, [isOpen, babyId]);
+
+
+
+  useEffect(() => {
+    if (!activeSession) {
+      activeSessionIdRef.current = null;
+      return;
+    }
+
+    const elapsedSeconds = Math.max(0, Math.floor((sessionNow - new Date(activeSession.startedAt).getTime()) / 1000));
+
+    setFormData((prev) => {
+      const next = { ...prev };
+
+      // Rehydrate form like user never left the tab
+      if (!activity) {
+        next.type = 'BREAST';
+      }
+
+      if (activeSession.side === 'LEFT') {
+        next.side = 'LEFT';
+        next.leftDuration = elapsedSeconds;
+      } else if (activeSession.side === 'RIGHT') {
+        next.side = 'RIGHT';
+        next.rightDuration = elapsedSeconds;
+      }
+
+      // Only initialize notes once per session (avoid clobbering user edits while typing)
+      if (activeSessionIdRef.current !== activeSession.id) {
+        next.notes = activeSession.notes || '';
+      }
+
+      return next;
+    });
+
+    activeSessionIdRef.current = activeSession.id;
+  }, [activeSession, sessionNow, activity]);
+
+  useEffect(() => {
+    if (!isOpen || !activeSession || !babyId) return;
+
+    if (noteSaveTimeoutRef.current) {
+      clearTimeout(noteSaveTimeoutRef.current);
+    }
+
+    noteSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const authToken = localStorage.getItem('authToken');
+        await fetch('/api/activeSession', {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': authToken ? `Bearer ${authToken}` : '',
+          },
+          body: JSON.stringify({
+            babyId,
+            notes: formData.notes,
+          }),
+        });
+      } catch (error) {
+        console.error('Error saving active feeding note:', error);
+      }
+    }, 500);
+
+    return () => {
+      if (noteSaveTimeoutRef.current) {
+        clearTimeout(noteSaveTimeoutRef.current);
+      }
+    };
+  }, [formData.notes, activeSession?.id, babyId, isOpen]);
+
 
   useEffect(() => {
     if (formData.type === 'BOTTLE' || formData.type === 'SOLIDS') {
@@ -725,6 +798,7 @@ export default function FeedForm({
         body: JSON.stringify({
           babyId,
           side: breast,
+          notes: formData.notes || undefined,
         }),
       });
 
@@ -740,6 +814,7 @@ export default function FeedForm({
         duration: 5000,
       });
 
+      setActiveSession(data.data);
       onClose();
       onSuccess?.();
       window.dispatchEvent(new CustomEvent('feedingSessionStarted'));
@@ -796,6 +871,9 @@ export default function FeedForm({
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
+      if (noteSaveTimeoutRef.current) {
+        clearTimeout(noteSaveTimeoutRef.current);
+      }
     };
   }, []);
   
@@ -818,7 +896,7 @@ export default function FeedForm({
                       {t('Elapsed')}: {formatDuration(Math.max(0, Math.floor((sessionNow - new Date(activeSession.startedAt).getTime()) / 1000)))}
                     </div>
                   </div>
-                  <Button type="button" size="sm" onClick={stopActiveSession}>
+                  <Button type="button" size="sm" onClick={stopActiveSession} disabled={loading}>
                     {t('Stop Feeding')}
                   </Button>
                 </div>
