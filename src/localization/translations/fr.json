@@ -1345,5 +1345,6 @@
   "Failed to start feeding session.": "Échec du démarrage de la session de tétée.",
   "Background feeding session started.": "Session de tétée en arrière-plan démarrée.",
   "Start Background": "Démarrer en arrière-plan",
-  "A feeding session is already active for this child.": "Une session de tétée est déjà active pour cet enfant."
+  "A feeding session is already active for this child.": "Une session de tétée est déjà active pour cet enfant.",
+  "Active feeding session": "Session de tétée active"
 }

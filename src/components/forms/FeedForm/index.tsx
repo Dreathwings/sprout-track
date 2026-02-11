@@ -79,6 +79,78 @@ export default function FeedForm({
     defaultBottleUnit: 'OZ',
     defaultSolidsUnit: 'TBSP',
   });
+  const [activeSession, setActiveSession] = useState<{ id: string; startedAt: string; side: 'LEFT' | 'RIGHT' | null } | null>(null);
+  const [sessionNow, setSessionNow] = useState(Date.now());
+
+  const formatDuration = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+
+    return [hours, minutes, secs].map((value) => value.toString().padStart(2, '0')).join(':');
+  };
+
+  const fetchActiveSession = async () => {
+    if (!babyId) {
+      setActiveSession(null);
+      return;
+    }
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/activeSession?babyId=${babyId}`, {
+        headers: authToken ? { 'Authorization': `Bearer ${authToken}` } : {},
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        return;
+      }
+
+      setActiveSession(data.data || null);
+    } catch (error) {
+      console.error('Error fetching active session in feed form:', error);
+    }
+  };
+
+  const stopActiveSession = async () => {
+    if (!babyId || !activeSession) return;
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch('/api/stopSession', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+        body: JSON.stringify({ babyId }),
+      });
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || t('Failed to stop feeding session.'));
+      }
+
+      setActiveSession(null);
+      window.dispatchEvent(new CustomEvent('feedingSessionStopped'));
+      showToast({
+        variant: 'success',
+        title: t('Success'),
+        message: t('Feeding session completed.'),
+        duration: 5000,
+      });
+      onSuccess?.();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : t('Failed to stop feeding session.');
+      showToast({
+        variant: 'error',
+        title: t('Error'),
+        message: t(errorMessage),
+        duration: 5000,
+      });
+    }
+  };
 
   const fetchLastAmount = async (type: FeedType) => {
     if (!babyId) return;
@@ -282,6 +354,19 @@ export default function FeedForm({
       setInitializedTime(null);
     }
   }, [isOpen, activity, initialTime]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    fetchActiveSession();
+    const poll = setInterval(fetchActiveSession, 30000);
+    const tick = setInterval(() => setSessionNow(Date.now()), 1000);
+
+    return () => {
+      clearInterval(poll);
+      clearInterval(tick);
+    };
+  }, [isOpen, babyId]);
 
   useEffect(() => {
     if (formData.type === 'BOTTLE' || formData.type === 'SOLIDS') {
@@ -724,6 +809,22 @@ export default function FeedForm({
         <FormPageContent className="overflow-y-auto">
           <form onSubmit={handleSubmit} className="h-full flex flex-col">
           <div className="space-y-4 pb-20">
+            {activeSession && (
+              <div className="bg-amber-50 border border-amber-200 rounded-md p-3">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-amber-900">
+                    <div className="font-semibold">{t('Active feeding session')}</div>
+                    <div>
+                      {t('Elapsed')}: {formatDuration(Math.max(0, Math.floor((sessionNow - new Date(activeSession.startedAt).getTime()) / 1000)))}
+                    </div>
+                  </div>
+                  <Button type="button" size="sm" onClick={stopActiveSession}>
+                    {t('Stop Feeding')}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Validation Error Display */}
             {validationError && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
