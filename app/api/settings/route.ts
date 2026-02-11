@@ -23,6 +23,19 @@ async function handleGet(req: NextRequest, authContext: AuthResult) {
       return NextResponse.json<ApiResponse<null>>({ success: false, error: 'User is not associated with a family.' }, { status: 403 });
     }
 
+    // Guard against orphaned/stale family IDs to avoid FK violations when auto-creating settings
+    const familyExists = await prisma.family.findUnique({
+      where: { id: targetFamilyId },
+      select: { id: true },
+    });
+
+    if (!familyExists) {
+      return NextResponse.json<ApiResponse<null>>(
+        { success: false, error: 'Family not found.' },
+        { status: 404 }
+      );
+    }
+
     let settings = await prisma.settings.findFirst({
       where: { familyId: targetFamilyId },
     });
