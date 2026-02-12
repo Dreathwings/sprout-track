@@ -540,3 +540,37 @@ The `./scripts/env-update.sh` script automatically manages environment variables
 7. **Tester cas limites horaires**
    - **Étapes :** Valider `00:00`, `12:00 AM`, `12:00 PM`, `23:59`.
    - **Résultat attendu :** Aucune erreur de parsing ni inversion AM/PM, affichage cohérent avec les préférences utilisateur.
+
+## Testing – Advanced Feeding Session
+
+1. **Alternance seins**
+   - Ouvrir l'onglet Alimentation.
+   - Démarrer une session sur le sein gauche.
+   - Basculer sur le sein droit.
+   - Mettre en pause, attendre au moins 10 secondes, reprendre.
+   - Vérifier que le temps total et les temps gauche/droit se cumulent correctement.
+
+2. **Auto-save note**
+   - Modifier la note d'une entrée alimentation ou d'une session active.
+   - Quitter l'onglet (navigation) ou rafraîchir la page.
+   - Revenir et vérifier que la note est persistée.
+
+3. **Navigation**
+   - Démarrer une session active.
+   - Naviguer vers un autre écran.
+   - Revenir sur Alimentation et vérifier que l'état (active side, pause/active, temps) est récupéré.
+
+4. **Refresh**
+   - Lancer une session active.
+   - Rafraîchir la page pendant que la session tourne.
+   - Vérifier la récupération de la session et la continuité du chrono.
+
+5. **Multi-utilisateur**
+   - Ouvrir deux navigateurs (ou deux profils) sur la même famille.
+   - Démarrer/switch/pause/reprendre côté A.
+   - Vérifier côté B la synchronisation de l'état et des durées après polling.
+
+6. **Cas limites**
+   - Essayer de démarrer une deuxième session active pour le même enfant (doit être refusé).
+   - Laisser une pause longue durée puis reprendre.
+   - Faire plusieurs alternances gauche/droite puis arrêter.

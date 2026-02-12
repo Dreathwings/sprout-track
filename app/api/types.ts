@@ -118,6 +118,22 @@ export interface FeedLogCreate {
   bottleType?: string;
 }
 
+
+
+export interface ActiveFeedingSessionResponse {
+  id: string;
+  babyId: string;
+  startedAt: string;
+  activeSide: BreastSide | null;
+  leftDurationMs: number;
+  rightDurationMs: number;
+  totalDurationMs: number;
+  lastSwitchAt: string | null;
+  status: 'ACTIVE' | 'PAUSED';
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 // Diaper log types
 export type DiaperLogResponse = Omit<DiaperLog, 'time' | 'createdAt' | 'updatedAt' | 'deletedAt'> & {
   time: string;

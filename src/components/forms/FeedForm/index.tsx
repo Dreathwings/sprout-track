@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { FeedType, BreastSide } from '@prisma/client';
 import { FeedLogResponse } from '@/app/api/types';
 import { Button } from '@/src/components/ui/button';
@@ -12,6 +12,7 @@ import {
   FormPageFooter 
 } from '@/src/components/ui/form-page';
 import { Check } from 'lucide-react';
+import { Textarea } from '@/src/components/ui/textarea';
 import { useTimezone } from '@/app/context/timezone';
 import { useTheme } from '@/src/context/theme';
 import { useToast } from '@/src/components/ui/toast';
@@ -23,6 +24,23 @@ import BreastFeedForm from './BreastFeedForm';
 import BottleFeedForm from './BottleFeedForm';
 import SolidsFeedForm from './SolidsFeedForm';
 import { useLocalization } from '@/src/context/localization';
+
+
+
+interface ActiveFeedingSessionResponse {
+  id: string;
+  babyId: string;
+  startedAt: string;
+  activeSide: 'LEFT' | 'RIGHT' | null;
+  leftDurationMs: number;
+  rightDurationMs: number;
+  totalDurationMs: number;
+  lastSwitchAt: string | null;
+  status: 'ACTIVE' | 'PAUSED';
+  note: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 interface FeedFormProps {
   isOpen: boolean;
@@ -82,6 +100,13 @@ export default function FeedForm({
     defaultBottleUnit: 'OZ',
     defaultSolidsUnit: 'TBSP',
   });
+
+  const [activeSession, setActiveSession] = useState<ActiveFeedingSessionResponse | null>(null);
+  const [sessionNoteDraft, setSessionNoteDraft] = useState('');
+  const [sessionConflictError, setSessionConflictError] = useState('');
+  const [sessionSyncAt, setSessionSyncAt] = useState<number>(Date.now());
+  const [sessionTick, setSessionTick] = useState(0);
+  const autosaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchLastAmount = async (type: FeedType) => {
     if (!babyId) return;
@@ -344,6 +369,79 @@ export default function FeedForm({
       }));
     }
   };
+
+
+
+  const fetchActiveSession = useCallback(async () => {
+    if (!babyId) return;
+
+    try {
+      const authToken = localStorage.getItem('authToken');
+      const response = await fetch(`/api/feed-log/active-feeding-session?babyId=${babyId}`, {
+        headers: { 'Authorization': authToken ? `Bearer ${authToken}` : '' },
+      });
+      if (!response.ok) return;
+      const data = await response.json();
+      if (data.success) {
+        setActiveSession(data.data || null);
+        setSessionNoteDraft(data.data?.note || '');
+        setSessionSyncAt(Date.now());
+      }
+    } catch (error) {
+      console.error('Error fetching active feeding session:', error);
+    }
+  }, [babyId]);
+
+  const formatDurationMs = (ms: number) => {
+    const total = Math.floor(ms / 1000);
+    const h = Math.floor(total / 3600).toString().padStart(2, '0');
+    const m = Math.floor((total % 3600) / 60).toString().padStart(2, '0');
+    const sec = (total % 60).toString().padStart(2, '0');
+    return `${h}:${m}:${sec}`;
+  };
+
+  const getLiveSessionDurations = () => {
+    void sessionTick;
+    if (!activeSession) return { total: 0, left: 0, right: 0 };
+
+    let left = activeSession.leftDurationMs;
+    let right = activeSession.rightDurationMs;
+
+    if (activeSession.status === 'ACTIVE' && activeSession.activeSide) {
+      const delta = Math.max(0, Date.now() - sessionSyncAt);
+      if (activeSession.activeSide === 'LEFT') {
+        left += delta;
+      } else {
+        right += delta;
+      }
+    }
+
+    return { total: left + right, left, right };
+  };
+
+  const autosaveNote = useCallback(async (note: string) => {
+    const authToken = localStorage.getItem('authToken');
+
+    if (activity?.id) {
+      await fetch('/api/feed-log/auto-save-note', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+        body: JSON.stringify({ feedLogId: activity.id, note, updatedAt: activity.updatedAt }),
+      });
+    } else if (babyId && activeSession?.id) {
+      await fetch('/api/feed-log/auto-save-note', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': authToken ? `Bearer ${authToken}` : '',
+        },
+        body: JSON.stringify({ babyId, note }),
+      });
+    }
+  }, [activity?.id, activity?.updatedAt, babyId, activeSession?.id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -685,6 +783,94 @@ export default function FeedForm({
     };
   }, []);
   
+
+  useEffect(() => {
+    if (!activeSession || activeSession.status !== 'ACTIVE') return;
+    const interval = setInterval(() => setSessionTick((v) => v + 1), 1000);
+    return () => clearInterval(interval);
+  }, [activeSession]);
+
+  useEffect(() => {
+    if (!isOpen || !babyId) return;
+    fetchActiveSession();
+    const interval = setInterval(fetchActiveSession, 5000);
+    return () => clearInterval(interval);
+  }, [isOpen, babyId, fetchActiveSession]);
+
+  useEffect(() => {
+    if (!isOpen || (!activity?.id && !activeSession?.id)) return;
+
+    if (autosaveTimeoutRef.current) {
+      clearTimeout(autosaveTimeoutRef.current);
+    }
+
+    autosaveTimeoutRef.current = setTimeout(() => {
+      autosaveNote(formData.notes).catch((error) => {
+        console.error('Auto-save note failed:', error);
+      });
+    }, 800);
+
+    return () => {
+      if (autosaveTimeoutRef.current) {
+        clearTimeout(autosaveTimeoutRef.current);
+      }
+    };
+  }, [formData.notes, isOpen, activity?.id, activeSession?.id, autosaveNote]);
+
+  useEffect(() => {
+    const saveOnExit = () => {
+      if (!formData.notes.trim()) return;
+      autosaveNote(formData.notes).catch(() => undefined);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'hidden') {
+        saveOnExit();
+      }
+    };
+
+    window.addEventListener('beforeunload', saveOnExit);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.removeEventListener('beforeunload', saveOnExit);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      saveOnExit();
+    };
+  }, [autosaveNote, formData.notes]);
+
+  const postSessionAction = async (endpoint: string, payload: Record<string, unknown>) => {
+    const authToken = localStorage.getItem('authToken');
+    setSessionConflictError('');
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': authToken ? `Bearer ${authToken}` : '',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json();
+    if (!response.ok) {
+      if (response.status === 409) {
+        setSessionConflictError(t(data.error || 'An active feeding session already exists for this baby.'));
+      }
+      throw new Error(data.error || 'Session action failed');
+    }
+
+    if (data.data?.id) {
+      setActiveSession(data.data);
+      setSessionNoteDraft(data.data.note || '');
+      setSessionSyncAt(Date.now());
+    } else if (endpoint.includes('stop-feeding')) {
+      setActiveSession(null);
+      setSessionNoteDraft('');
+      if (onSuccess) onSuccess();
+    }
+  };
+
   return (
     <FormPage
       isOpen={isOpen}
@@ -695,6 +881,62 @@ export default function FeedForm({
         <FormPageContent className="overflow-y-auto">
           <form onSubmit={handleSubmit} className="h-full flex flex-col">
           <div className="space-y-4 pb-20">
+            {sessionConflictError && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-700 px-4 py-3 rounded-md text-sm">
+                {sessionConflictError}
+              </div>
+            )}
+
+            {babyId && formData.type === 'BREAST' && (
+              <div className="border rounded-lg p-4 bg-slate-50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold">{t('Active Feeding Session')}</h3>
+                  {activeSession ? (
+                    <span className="text-xs px-2 py-1 rounded bg-white border">
+                      {activeSession.status === 'ACTIVE' ? t('Active') : t('Paused')}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-500">{t('No active session')}</span>
+                  )}
+                </div>
+
+                {activeSession ? (
+                  <>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm">
+                      <div><strong>{t('Total')}</strong>: {formatDurationMs(getLiveSessionDurations().total)}</div>
+                      <div><strong>{t('Left')}</strong>: {formatDurationMs(getLiveSessionDurations().left)}</div>
+                      <div><strong>{t('Right')}</strong>: {formatDurationMs(getLiveSessionDurations().right)}</div>
+                    </div>
+                    <div className="text-sm text-gray-700">
+                      {t('Active side')}: {activeSession.activeSide ? t(activeSession.activeSide === 'LEFT' ? 'Left' : 'Right') : t('None')}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" size="sm" variant="outline" onClick={() => postSessionAction('/api/feed-log/switch-side', { babyId, side: activeSession.activeSide === 'LEFT' ? 'RIGHT' : 'LEFT' })}>
+                        {t('Switch side')}
+                      </Button>
+                      {activeSession.status === 'ACTIVE' ? (
+                        <Button type="button" size="sm" variant="outline" onClick={() => postSessionAction('/api/feed-log/pause-feeding', { babyId })}>{t('Pause')}</Button>
+                      ) : (
+                        <>
+                          <Button type="button" size="sm" variant="outline" onClick={() => postSessionAction('/api/feed-log/resume-feeding', { babyId, side: 'LEFT' })}>{t('Resume Left')}</Button>
+                          <Button type="button" size="sm" variant="outline" onClick={() => postSessionAction('/api/feed-log/resume-feeding', { babyId, side: 'RIGHT' })}>{t('Resume Right')}</Button>
+                        </>
+                      )}
+                      <Button type="button" size="sm" onClick={() => postSessionAction('/api/feed-log/stop-feeding', { babyId, note: sessionNoteDraft })}>{t('Stop')}</Button>
+                    </div>
+                    <div>
+                      <label className="form-label">{t('Note')}</label>
+                      <Textarea value={sessionNoteDraft} onChange={(e) => { setSessionNoteDraft(e.target.value); setFormData(prev => ({ ...prev, notes: e.target.value })); }} placeholder={t('Add a note to this feeding session')} rows={2} />
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button type="button" size="sm" onClick={() => postSessionAction('/api/feed-log/start-feeding', { babyId, side: 'LEFT', note: sessionNoteDraft })}>{t('Start Left')}</Button>
+                    <Button type="button" size="sm" onClick={() => postSessionAction('/api/feed-log/start-feeding', { babyId, side: 'RIGHT', note: sessionNoteDraft })}>{t('Start Right')}</Button>
+                  </div>
+                )}
+              </div>
+            )}
             {/* Validation Error Display */}
             {validationError && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">

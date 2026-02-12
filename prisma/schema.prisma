@@ -178,6 +178,7 @@ model Family {
   familyMembers  FamilyMember[]
   familySetups   FamilySetup[]
   feedback       Feedback[]
+  activeFeedingSessions ActiveFeedingSession[]
 }
 
 // New model for family membership
@@ -224,6 +225,7 @@ model Baby {
   measurements Measurement[]
   events       BabyEvent[] // New relationship for calendar events
   medicineLogs MedicineLog[] // New relationship for medicine logs
+  activeFeedingSessions ActiveFeedingSession[]
 
   @@index([birthDate])
   @@index([deletedAt])
@@ -267,6 +269,7 @@ model Caretaker {
   familyMembers FamilyMember[]
   familySetups  FamilySetup[]
   feedback      Feedback[]
+  activeFeedingSessions ActiveFeedingSession[]
 
   @@index([deletedAt])
   @@index([familyId])
@@ -356,6 +359,37 @@ model FeedLog {
   @@index([unitAbbr])
   @@index([deletedAt])
   @@index([familyId])
+}
+
+model ActiveFeedingSession {
+  id             String              @id @default(uuid())
+  startedAt      DateTime
+  activeSide     BreastSide?
+  leftDurationMs BigInt              @default(0)
+  rightDurationMs BigInt             @default(0)
+  lastSwitchAt   DateTime?
+  status         FeedingSessionStatus @default(ACTIVE)
+  note           String?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  family   Family? @relation(fields: [familyId], references: [id])
+  familyId String?
+
+  baby   Baby   @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  babyId String
+
+  caretaker   Caretaker? @relation(fields: [caretakerId], references: [id])
+  caretakerId String?
+
+  @@unique([babyId, familyId])
+  @@index([familyId])
+  @@index([status])
+}
+
+enum FeedingSessionStatus {
+  ACTIVE
+  PAUSED
 }
 
 model DiaperLog {
